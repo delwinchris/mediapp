@@ -14,6 +14,10 @@ import type {
   Testimonial,
   FAQItem,
   Feature,
+  InjuryCategory,
+  RecoveryPlanItem,
+  ActivityItem,
+  OnboardingData,
 } from './types';
 
 export const mockUser: UserProfile = {
@@ -336,3 +340,59 @@ export const dailyWins: DailyWin[] = [
   { id: 'dw2', date: '2026-07-26', text: 'Got back on the bike and rode for 20 minutes.' },
   { id: 'dw3', date: '2026-07-27', text: 'Completed every single prescribed exercise today.' },
 ];
+
+export const injuryCategories: InjuryCategory[] = [
+  {
+    id: 'shoulder', label: 'Shoulder', icon: 'Shoulder',
+    conditions: ['Shoulder Dislocation', 'Bankart Repair', 'SLAP Repair', 'Rotator Cuff Repair', 'Biceps Tenodesis', 'Labrum Tear', 'Frozen Shoulder'],
+  },
+  {
+    id: 'knee', label: 'Knee', icon: 'Knee',
+    conditions: ['ACL Reconstruction', 'Meniscus Repair', 'Patellar Dislocation', 'MCL Injury'],
+  },
+  {
+    id: 'hip', label: 'Hip', icon: 'Hip',
+    conditions: ['Hip Replacement', 'Hip Labral Tear'],
+  },
+  {
+    id: 'foot-ankle', label: 'Foot & Ankle', icon: 'Foot',
+    conditions: ['Achilles Repair', 'Ankle Sprain'],
+  },
+  {
+    id: 'general', label: 'General', icon: 'Bone',
+    conditions: ['Fracture', 'Tendon Injury', 'Chronic Pain'],
+  },
+];
+
+export const goalOptions = [
+  'Return to competitive sport',
+  'Return to running',
+  'Walk without pain',
+  'Regain full range of motion',
+  'Return to work duties',
+  'Return to daily activities',
+];
+
+export const defaultOnboardingData: OnboardingData = {
+  name: '', age: '', height: '', weight: '', gender: '',
+  injuryCategory: '', injuryType: '', injuryDate: '', surgeryDate: '',
+  side: '', pain: 5, mobility: 50, goal: '',
+};
+
+export const recoveryPlan: RecoveryPlanItem[] = [
+  { id: 'rp1', title: 'Exercises', detail: '3 prescribed · 2 done', icon: 'Dumbbell', progress: 67, total: 3, done: 2, color: 'from-blue-500 to-blue-600' },
+  { id: 'rp2', title: 'Hydration', detail: '1.5L of 2.5L', icon: 'Droplets', progress: 60, total: 2500, done: 1500, color: 'from-cyan-400 to-blue-500' },
+  { id: 'rp3', title: 'Medication', detail: '2 of 3 doses', icon: 'Pill', progress: 67, total: 3, done: 2, color: 'from-emerald-500 to-teal-500' },
+  { id: 'rp4', title: 'Walking Goal', detail: '1,840 of 2,000 steps', icon: 'Footprints', progress: 92, total: 2000, done: 1840, color: 'from-amber-400 to-orange-500' },
+];
+
+export const recentActivity: ActivityItem[] = [
+  { id: 'a1', type: 'exercise', title: 'Completed Straight Leg Raises', time: '2 hours ago', icon: 'Dumbbell' },
+  { id: 'a2', type: 'pain', title: 'Logged pain level: 3/10', time: '3 hours ago', icon: 'HeartPulse' },
+  { id: 'a3', type: 'journal', title: 'Added journal entry: "Feeling optimistic"', time: '5 hours ago', icon: 'BookHeart' },
+  { id: 'a4', type: 'milestone', title: 'Reached milestone: First bike ride', time: 'Yesterday', icon: 'Trophy' },
+];
+
+export const dailyMotivation = 'You don\'t have to be perfect. You just have to keep showing up. Today is another step forward.';
+
+export const aiCoachMessage = 'Your recovery has been consistent this week. Continue your exercises and maintain good sleep habits. If symptoms worsen, consult your healthcare professional.';

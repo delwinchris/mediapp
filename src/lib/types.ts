@@ -4,13 +4,14 @@ export interface UserProfile {
   id: string;
   name: string;
   email: string;
-  age: number;
-  height: number;
-  weight: number;
+  age?: number;
+  height?: number;
+  weight?: number;
   injury: string;
   injuryDate: string;
-  painLevel: PainLevel;
-  mobilityLevel: PainLevel;
+  surgeryDate?: string;
+  painLevel: number;
+  mobilityLevel: number;
   recoveryGoal: string;
   avatarUrl?: string;
 }
@@ -142,4 +143,46 @@ export interface Feature {
   icon: string;
   title: string;
   description: string;
+}
+
+export interface InjuryCategory {
+  id: string;
+  label: string;
+  icon: string;
+  conditions: string[];
+}
+
+export interface RecoveryPlanItem {
+  id: string;
+  title: string;
+  detail: string;
+  icon: string;
+  progress: number;
+  total: number;
+  done: number;
+  color: string;
+}
+
+export interface ActivityItem {
+  id: string;
+  type: 'exercise' | 'pain' | 'journal' | 'milestone';
+  title: string;
+  time: string;
+  icon: string;
+}
+
+export interface OnboardingData {
+  name: string;
+  age: string;
+  height: string;
+  weight: string;
+  gender: string;
+  injuryCategory: string;
+  injuryType: string;
+  injuryDate: string;
+  surgeryDate: string;
+  side: 'left' | 'right' | 'both' | '';
+  pain: number;
+  mobility: number;
+  goal: string;
 }

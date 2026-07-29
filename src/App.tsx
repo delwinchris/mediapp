@@ -1,4 +1,6 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { type ReactNode } from 'react';
+import { AuthProvider, useAuth } from '@/lib/auth';
 import { LandingPage } from '@/pages/LandingPage';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { SignupPage } from '@/pages/auth/SignupPage';
@@ -13,29 +15,53 @@ import { ProgressPage } from '@/pages/app/ProgressPage';
 import { AICoachPage } from '@/pages/app/AICoachPage';
 import { ProfilePage } from '@/pages/app/ProfilePage';
 
+function ProtectedRoute({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+  if (loading) return null;
+  if (!user) return <Navigate to="/login" replace state={{ from: location }} />;
+  if (user.isNewUser) return <Navigate to="/onboarding" replace />;
+  return <>{children}</>;
+}
+
+function PublicOnlyRoute({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (user && !user.isNewUser) return <Navigate to="/app/dashboard" replace />;
+  return <>{children}</>;
+}
+
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
+      <Route path="/signup" element={<PublicOnlyRoute><SignupPage /></PublicOnlyRoute>} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/onboarding" element={<OnboardingPage />} />
+      <Route path="/app">
+        <Route index element={<Navigate to="/app/dashboard" replace />} />
+        <Route path="dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+        <Route path="tracker" element={<ProtectedRoute><RecoveryTrackerPage /></ProtectedRoute>} />
+        <Route path="mental" element={<ProtectedRoute><MentalRecoveryPage /></ProtectedRoute>} />
+        <Route path="mind" element={<ProtectedRoute><MindRecoveryPage /></ProtectedRoute>} />
+        <Route path="exercises" element={<ProtectedRoute><ExerciseLibraryPage /></ProtectedRoute>} />
+        <Route path="progress" element={<ProtectedRoute><ProgressPage /></ProtectedRoute>} />
+        <Route path="coach" element={<ProtectedRoute><AICoachPage /></ProtectedRoute>} />
+        <Route path="profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+      </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/onboarding" element={<OnboardingPage />} />
-        <Route path="/app">
-          <Route index element={<Navigate to="/app/dashboard" replace />} />
-          <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="tracker" element={<RecoveryTrackerPage />} />
-          <Route path="mental" element={<MentalRecoveryPage />} />
-          <Route path="mind" element={<MindRecoveryPage />} />
-          <Route path="exercises" element={<ExerciseLibraryPage />} />
-          <Route path="progress" element={<ProgressPage />} />
-          <Route path="coach" element={<AICoachPage />} />
-          <Route path="profile" element={<ProfilePage />} />
-        </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 
