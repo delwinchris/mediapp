@@ -14,6 +14,11 @@ import { ExerciseLibraryPage } from '@/pages/app/ExerciseLibraryPage';
 import { ProgressPage } from '@/pages/app/ProgressPage';
 import { AICoachPage } from '@/pages/app/AICoachPage';
 import { ProfilePage } from '@/pages/app/ProfilePage';
+import { AnalyticsPage } from '@/pages/app/AnalyticsPage';
+import { AchievementsPage } from '@/pages/app/AchievementsPage';
+import { SettingsPage } from '@/pages/app/SettingsPage';
+import { CalendarPage } from '@/pages/app/CalendarPage';
+import { ReportPage } from '@/pages/app/ReportPage';
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -48,6 +53,11 @@ function AppRoutes() {
         <Route path="exercises" element={<ProtectedRoute><ExerciseLibraryPage /></ProtectedRoute>} />
         <Route path="progress" element={<ProtectedRoute><ProgressPage /></ProtectedRoute>} />
         <Route path="coach" element={<ProtectedRoute><AICoachPage /></ProtectedRoute>} />
+        <Route path="analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
+        <Route path="achievements" element={<ProtectedRoute><AchievementsPage /></ProtectedRoute>} />
+        <Route path="calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
+        <Route path="report" element={<ProtectedRoute><ReportPage /></ProtectedRoute>} />
+        <Route path="settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
         <Route path="profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

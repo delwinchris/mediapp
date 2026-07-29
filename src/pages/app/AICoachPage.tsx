@@ -1,18 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Send, AlertTriangle, User } from 'lucide-react';
+import { Sparkles, Send, AlertTriangle, User, Clock } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { aiSampleResponses } from '@/lib/mockData';
+import { aiCoachResponses, defaultAiResponse } from '@/lib/mockData';
 import type { ChatMessage } from '@/lib/types';
 import { cn } from '@/lib/cn';
 
 const suggestions = [
-  "Is my pain level normal at this stage?",
-  "What exercises should I do today?",
-  "I'm feeling anxious about re-injury.",
-  "How's my recovery trending?",
+  'Why is my pain worse today?',
+  'When can I return to sports?',
+  'How can I improve my recovery?',
+  'What should I discuss with my physiotherapist?',
 ];
 
 const initialMessages: ChatMessage[] = [
@@ -24,29 +24,51 @@ const initialMessages: ChatMessage[] = [
   },
 ];
 
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
 export function AICoachPage() {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
+  const [displayedText, setDisplayedText] = useState('');
+  const [pendingReply, setPendingReply] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-  }, [messages, typing]);
+  }, [messages, typing, displayedText]);
+
+  useEffect(() => {
+    if (!typing || !pendingReply) return;
+    let i = 0;
+    setDisplayedText('');
+    const interval = setInterval(() => {
+      i += 2;
+      setDisplayedText(pendingReply.slice(0, i));
+      if (i >= pendingReply.length) {
+        clearInterval(interval);
+        setMessages((m) => [...m, { id: `c${Date.now()}`, role: 'coach', text: pendingReply, timestamp: new Date().toISOString() }]);
+        setDisplayedText('');
+        setPendingReply('');
+        setTyping(false);
+      }
+    }, 15);
+    return () => clearInterval(interval);
+  }, [typing, pendingReply]);
 
   const send = (text: string) => {
-    if (!text.trim()) return;
+    if (!text.trim() || typing) return;
     const userMsg: ChatMessage = { id: `u${Date.now()}`, role: 'user', text, timestamp: new Date().toISOString() };
     setMessages((m) => [...m, userMsg]);
     setInput('');
-    setTyping(true);
 
     setTimeout(() => {
-      const reply = aiSampleResponses[Math.floor(Math.random() * aiSampleResponses.length)];
-      const coachMsg: ChatMessage = { id: `c${Date.now()}`, role: 'coach', text: reply, timestamp: new Date().toISOString() };
-      setMessages((m) => [...m, coachMsg]);
-      setTyping(false);
-    }, 1400);
+      const reply = aiCoachResponses[text] ?? defaultAiResponse;
+      setPendingReply(reply);
+      setTyping(true);
+    }, 800);
   };
 
   return (
@@ -82,7 +104,12 @@ export function AICoachPage() {
                   <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-xl', m.role === 'coach' ? 'bg-gradient-to-br from-blue-600 to-emerald-500 text-white' : 'bg-slate-200 text-slate-600')}>
                     {m.role === 'coach' ? <Sparkles size={16} /> : <User size={16} />}
                   </div>
-                  <div className={cn('max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed', m.role === 'coach' ? 'bg-slate-100 text-slate-700' : 'bg-blue-600 text-white')}>{m.text}</div>
+                  <div className={cn('max-w-[75%]', m.role === 'user' && 'flex flex-col items-end')}>
+                    <div className={cn('rounded-2xl px-4 py-3 text-sm leading-relaxed', m.role === 'coach' ? 'bg-slate-100 text-slate-700' : 'bg-blue-600 text-white')}>{m.text}</div>
+                    <div className={cn('mt-1 flex items-center gap-1 text-xs text-slate-400', m.role === 'user' && 'flex-row-reverse')}>
+                      <Clock size={10} /> {formatTime(m.timestamp)}
+                    </div>
+                  </div>
                 </motion.div>
               ))}
 
@@ -90,17 +117,24 @@ export function AICoachPage() {
                 {typing && (
                   <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-emerald-500 text-white"><Sparkles size={16} /></div>
-                    <div className="flex items-center gap-1 rounded-2xl bg-slate-100 px-4 py-4">
-                      {[0, 1, 2].map((i) => (
-                        <motion.span key={i} className="h-2 w-2 rounded-full bg-slate-400" animate={{ y: [0, -6, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }} />
-                      ))}
+                    <div className="max-w-[75%] rounded-2xl bg-slate-100 px-4 py-3 text-sm leading-relaxed text-slate-700">
+                      {displayedText || (
+                        <div className="flex items-center gap-1 py-1">
+                          {[0, 1, 2].map((i) => (
+                            <motion.span key={i} className="h-2 w-2 rounded-full bg-slate-400" animate={{ y: [0, -6, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }} />
+                          ))}
+                        </div>
+                      )}
+                      {displayedText && displayedText.length < (pendingReply?.length ?? 0) && (
+                        <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-slate-500 align-middle" />
+                      )}
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
 
-            {messages.length <= 2 && (
+            {messages.length <= 2 && !typing && (
               <div className="flex flex-wrap gap-2 border-t border-slate-100 p-3">
                 {suggestions.map((s) => (
                   <button key={s} onClick={() => send(s)} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600">{s}</button>
@@ -150,6 +184,17 @@ export function AICoachPage() {
                 <p className="text-2xl font-bold text-blue-600">+4</p>
                 <p className="text-xs text-slate-500">Mood points</p>
               </div>
+            </div>
+          </Card>
+
+          <Card>
+            <h3 className="mb-3 font-bold text-slate-900">Suggested questions</h3>
+            <div className="space-y-2">
+              {suggestions.map((s) => (
+                <button key={s} onClick={() => send(s)} disabled={typing} className="flex w-full items-center gap-2 rounded-2xl border border-slate-100 p-3 text-left text-sm font-medium text-slate-600 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 disabled:opacity-50">
+                  <Sparkles size={14} className="shrink-0 text-blue-400" /> {s}
+                </button>
+              ))}
             </div>
           </Card>
         </div>

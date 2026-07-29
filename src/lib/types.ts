@@ -199,3 +199,67 @@ export interface OnboardingData {
   mobility: number;
   goal: string;
 }
+
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  earned: boolean;
+  date?: string;
+  xp: number;
+  tier: 'bronze' | 'silver' | 'gold' | 'platinum';
+}
+
+export interface RecoveryLevel {
+  level: number;
+  title: string;
+  currentXp: number;
+  nextLevelXp: number;
+  totalXp: number;
+}
+
+export interface CalendarEvent {
+  id: string;
+  date: string;
+  title: string;
+  type: 'exercise' | 'appointment' | 'medication' | 'milestone';
+  time?: string;
+  description?: string;
+}
+
+export interface RecoveryInsight {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  trend: 'up' | 'down' | 'neutral';
+  trendValue: string;
+  accent: 'blue' | 'emerald' | 'amber' | 'violet' | 'rose' | 'sky';
+}
+
+export interface AnalyticsSeries {
+  key: string;
+  label: string;
+  color: string;
+  icon: string;
+  weekly: { date: string; value: number }[];
+  monthly: { date: string; value: number }[];
+  yearly: { date: string; value: number }[];
+  domain: [number, number];
+  invert?: boolean;
+}
+
+export interface ReportSummary {
+  physicalScore: number;
+  mentalScore: number;
+  overallScore: number;
+  painChange: number;
+  mobilityChange: number;
+  strengthChange: number;
+  sleepAvg: number;
+  anxietyChange: number;
+  confidenceChange: number;
+  exerciseConsistency: number;
+  streak: number;
+}

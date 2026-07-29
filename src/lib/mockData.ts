@@ -19,6 +19,12 @@ import type {
   ActivityItem,
   OnboardingData,
   RecoveryStoryMilestone,
+  Achievement,
+  RecoveryLevel,
+  CalendarEvent,
+  RecoveryInsight,
+  AnalyticsSeries,
+  ReportSummary,
 } from './types';
 
 export const mockUser: UserProfile = {
@@ -415,3 +421,136 @@ export const recoveryStory: RecoveryStoryMilestone[] = [
   { id: 'rs5', phase: 'Month 6', date: '2026-11-14', title: 'First Gym Session', description: 'Completed a full strength and conditioning session with physio.', achieved: false, icon: 'Dumbbell' },
   { id: 'rs6', phase: 'Return to Sport', date: '2027-02-14', title: 'Return to Sport', description: 'Target: first competitive race post-recovery.', achieved: false, icon: 'Trophy' },
 ];
+
+export const aiCoachResponses: Record<string, string> = {
+  'Why is my pain worse today?': "Pain fluctuations are completely normal during recovery. Several factors could be contributing: increased activity intensity, weather changes, reduced sleep quality, or your body's natural inflammatory cycle. Try logging your pain level at the same time each day to identify patterns. If pain persists above 6/10 for more than 2 days, contact your physiotherapist.",
+  'When can I return to sports?': "Based on your current trajectory — pain at 3/10, mobility at 70%, and steady strength gains — you're on track for a return to sport around month 9-12 post-surgery. This timeline depends on maintaining consistency with your exercises, hitting strength benchmarks (90% of uninjured leg), and passing a functional movement assessment with your physiotherapist.",
+  'How can I improve my recovery?': "Three high-impact areas to focus on: 1) Sleep — aim for 8+ hours, as tissue repair accelerates during deep sleep. 2) Exercise consistency — completing all prescribed exercises daily is the #1 predictor of faster recovery. 3) Nutrition — protein intake supports tissue rebuilding. Your current 7-day streak is excellent; maintaining it will compound your gains.",
+  'What should I discuss with my physiotherapist?': "Great question. Here are key topics for your next appointment: 1) Your pain trend (down from 6 to 3 — share this data). 2) Whether you're ready to progress to the next exercise phase. 3) Any movements that still feel unstable or painful. 4) A timeline for return to sport. 5) Whether to add or reduce any exercises. Bringing your recovery data makes these conversations much more productive.",
+};
+
+export const defaultAiResponse = "That's a great question. Based on your recovery data, you're progressing well — pain is trending down, mobility is improving, and your consistency is strong. I'd recommend continuing your current routine and discussing any specific concerns with your physiotherapist at your next visit. Remember, I provide educational information only and am not a substitute for professional medical advice.";
+
+export const recoveryInsights: RecoveryInsight[] = [
+  { id: 'i1', title: 'Pain reduced by 32%', description: 'Your average pain dropped from 6.2 to 4.2 this month — the biggest monthly improvement yet.', icon: 'HeartPulse', trend: 'down', trendValue: '32%', accent: 'rose' },
+  { id: 'i2', title: 'Confidence climbing steadily', description: 'Confidence scores rose from 4 to 8 over the past 3 weeks as you hit mobility milestones.', icon: 'Smile', trend: 'up', trendValue: '+4 pts', accent: 'emerald' },
+  { id: 'i3', title: 'Sleep below target', description: 'You averaged 6.2 hours of sleep over the last 5 days — below your 8-hour goal. Sleep drives tissue repair.', icon: 'Moon', trend: 'down', trendValue: '-1.8h', accent: 'amber' },
+  { id: 'i4', title: 'Excellent exercise consistency', description: 'You completed 94% of prescribed exercises this week. Consistency is the strongest predictor of recovery speed.', icon: 'Dumbbell', trend: 'up', trendValue: '94%', accent: 'blue' },
+  { id: 'i5', title: 'Recovery readiness +11%', description: 'Your overall readiness score jumped from 67 to 78, driven by reduced pain and improved mobility.', icon: 'TrendingUp', trend: 'up', trendValue: '+11%', accent: 'violet' },
+  { id: 'i6', title: 'Anxiety trending down', description: 'Anxiety scores decreased from 6 to 3 as confidence in your knee returned.', icon: 'Brain', trend: 'down', trendValue: '-3 pts', accent: 'sky' },
+];
+
+export const achievements: Achievement[] = [
+  { id: 'a1', title: '7-Day Streak', description: 'Logged your recovery for 7 consecutive days', icon: 'Flame', earned: true, date: '2026-07-20', xp: 100, tier: 'bronze' },
+  { id: 'a2', title: 'Pain Reduced', description: 'Reduced your pain level by 50% or more', icon: 'HeartPulse', earned: true, date: '2026-07-15', xp: 200, tier: 'silver' },
+  { id: 'a3', title: 'First Month', description: 'Completed your first month of recovery tracking', icon: 'Calendar', earned: true, date: '2026-06-14', xp: 300, tier: 'silver' },
+  { id: 'a4', title: 'Recovery Warrior', description: 'Maintained a 30-day logging streak', icon: 'Shield', earned: true, date: '2026-07-10', xp: 500, tier: 'gold' },
+  { id: 'a5', title: 'Consistency Champion', description: 'Completed 95% of exercises for 2 weeks', icon: 'Trophy', earned: true, date: '2026-07-25', xp: 400, tier: 'gold' },
+  { id: 'a6', title: 'Return to Sport', description: 'Completed your return-to-sport assessment', icon: 'Medal', earned: false, xp: 1000, tier: 'platinum' },
+  { id: 'a7', title: 'Mindful Recovery', description: 'Completed 10 mindfulness sessions', icon: 'Brain', earned: false, xp: 250, tier: 'silver' },
+  { id: 'a8', title: 'Full Range of Motion', description: 'Regained 100% range of motion', icon: 'Activity', earned: false, xp: 600, tier: 'gold' },
+];
+
+export const recoveryLevel: RecoveryLevel = {
+  level: 8,
+  title: 'Recovery Warrior',
+  currentXp: 1850,
+  nextLevelXp: 2500,
+  totalXp: 6850,
+};
+
+export const calendarEvents: CalendarEvent[] = [
+  { id: 'e1', date: '2026-07-29', title: 'Morning Mobility Exercises', type: 'exercise', time: '08:00', description: '5 mobility drills · 20 min' },
+  { id: 'e2', date: '2026-07-29', title: 'Ibuprofen (400mg)', type: 'medication', time: '09:00', description: 'With breakfast' },
+  { id: 'e3', date: '2026-07-29', title: 'Strength Training', type: 'exercise', time: '17:00', description: '3 sets × 12 reps · 45 min' },
+  { id: 'e4', date: '2026-07-30', title: 'Physiotherapy Appointment', type: 'appointment', time: '10:30', description: 'Dr. Sarah Chen · Sports Rehab Clinic' },
+  { id: 'e5', date: '2026-07-30', title: 'Ibuprofen (400mg)', type: 'medication', time: '09:00' },
+  { id: 'e6', date: '2026-08-01', title: 'Mindfulness Session', type: 'exercise', time: '07:30', description: '10 min guided meditation' },
+  { id: 'e7', date: '2026-08-03', title: 'Range of Motion Assessment', type: 'milestone', time: '14:00', description: 'Target: full knee flexion' },
+  { id: 'e8', date: '2026-08-14', title: 'Month 3 Milestone', type: 'milestone', description: 'First full range of motion target' },
+  { id: 'e9', date: '2026-07-31', title: 'Evening Walk', type: 'exercise', time: '18:00', description: 'Target: 2km' },
+  { id: 'e10', date: '2026-08-02', title: 'Follow-up with Surgeon', type: 'appointment', time: '11:00', description: 'Dr. James Miller · 3-month check-up' },
+];
+
+const gen30 = (base: number, variance: number, trend: number) =>
+  Array.from({ length: 30 }, (_, i) => ({
+    date: `07/${(i + 1).toString().padStart(2, '0')}`,
+    value: Math.round(Math.max(0, Math.min(10, base + Math.sin(i / 3) * variance + trend * i / 30)) * 10) / 10,
+  }));
+
+const gen12 = (base: number, variance: number, trend: number) =>
+  Array.from({ length: 12 }, (_, i) => ({
+    date: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][i],
+    value: Math.round(Math.max(0, Math.min(10, base + Math.sin(i / 2) * variance + trend * i / 12)) * 10) / 10,
+  }));
+
+const gen7 = (vals: number[]) => vals.map((v, i) => ({ date: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i], value: v }));
+
+export const analyticsSeries: AnalyticsSeries[] = [
+  {
+    key: 'pain', label: 'Pain (30 Days)', color: '#f43f5e', icon: 'HeartPulse', domain: [0, 10], invert: true,
+    weekly: gen7([4, 3, 5, 4, 3, 3, 3]),
+    monthly: gen30(5, 1.5, -2),
+    yearly: gen12(6, 1.5, -3),
+  },
+  {
+    key: 'mobility', label: 'Mobility', color: '#10b981', icon: 'Footprints', domain: [0, 100],
+    weekly: gen7([65, 68, 67, 70, 72, 71, 70]),
+    monthly: gen30(50, 8, 20),
+    yearly: gen12(30, 10, 40),
+  },
+  {
+    key: 'strength', label: 'Strength', color: '#2563eb', icon: 'Dumbbell', domain: [0, 100],
+    weekly: gen7([50, 52, 55, 53, 55, 56, 55]),
+    monthly: gen30(30, 5, 25),
+    yearly: gen12(15, 5, 40),
+  },
+  {
+    key: 'sleep', label: 'Sleep (hours)', color: '#8b5cf6', icon: 'Moon', domain: [0, 12],
+    weekly: gen7([7, 6, 7, 8, 7, 6, 7]),
+    monthly: gen30(7, 1.5, 0.5),
+    yearly: gen12(6, 1.5, 1.5),
+  },
+  {
+    key: 'anxiety', label: 'Anxiety', color: '#f43f5e', icon: 'Brain', domain: [0, 10], invert: true,
+    weekly: gen7([4, 3, 4, 3, 3, 2, 3]),
+    monthly: gen30(6, 1.5, -3),
+    yearly: gen12(7, 1.5, -4),
+  },
+  {
+    key: 'confidence', label: 'Confidence', color: '#10b981', icon: 'Smile', domain: [0, 10],
+    weekly: gen7([7, 8, 7, 8, 8, 9, 8]),
+    monthly: gen30(4, 1.5, 4),
+    yearly: gen12(3, 1.5, 5),
+  },
+  {
+    key: 'recoveryScore', label: 'Recovery Score', color: '#2563eb', icon: 'TrendingUp', domain: [0, 100],
+    weekly: gen7([72, 75, 73, 78, 80, 78, 78]),
+    monthly: gen30(50, 8, 28),
+    yearly: gen12(30, 10, 48),
+  },
+  {
+    key: 'exerciseConsistency', label: 'Exercise Consistency', color: '#f59e0b', icon: 'CheckCircle', domain: [0, 100],
+    weekly: gen7([90, 100, 85, 95, 100, 90, 100]),
+    monthly: gen30(80, 10, 15),
+    yearly: gen12(60, 15, 35),
+  },
+];
+
+export const reportSummary: ReportSummary = {
+  physicalScore: 78,
+  mentalScore: 82,
+  overallScore: 80,
+  painChange: -50,
+  mobilityChange: 40,
+  strengthChange: 25,
+  sleepAvg: 7.1,
+  anxietyChange: -50,
+  confidenceChange: 100,
+  exerciseConsistency: 94,
+  streak: 30,
+};
+
+export const aiReportSummary = "Over the past 30 days, Alex has shown remarkable progress across all recovery domains. Pain has decreased by 50%, mobility improved by 40%, and strength gains are accelerating. Exercise consistency at 94% is excellent and is the primary driver of these gains. Mental wellbeing has improved in parallel — confidence has doubled while anxiety has halved. The key focus areas for the next month should be: maintaining exercise consistency, improving sleep quality (currently averaging 7.1h, target 8h), and preparing for the Month 3 range-of-motion assessment.";
+
+export const doctorNotesPlaceholder = "Doctor's notes will appear here once your healthcare provider reviews and signs off on this report. This section is reserved for clinical observations, recommendations, and next steps from your physiotherapist or surgeon.";

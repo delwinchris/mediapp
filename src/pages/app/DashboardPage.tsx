@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   HeartPulse, Smile, Moon, Footprints, Flame, ArrowRight, Check, Sparkles, Dumbbell,
-  Droplets, Pill, TrendingUp, BookHeart, Trophy, LifeBuoy, Calendar, Quote,
+  Droplets, Pill, TrendingUp, BookHeart, Trophy, LifeBuoy, Calendar, Quote, Brain,
   type LucideIcon,
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line } from 'recharts';
@@ -14,13 +14,22 @@ import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/lib/auth';
 import {
   recoveryPlan, recentActivity, dailyMotivation, aiCoachMessage,
-  dailyGoals, upcomingExercises,
+  dailyGoals, upcomingExercises, recoveryInsights,
 } from '@/lib/mockData';
 import { computeRecoveryScore, recoveryScoreSeries, painSeries, mobilitySeries, getStreak } from '@/lib/analytics';
 import { cn } from '@/lib/cn';
 
 const planIcons: Record<string, LucideIcon> = { Dumbbell, Droplets, Pill, Footprints };
 const activityIcons: Record<string, LucideIcon> = { Dumbbell, HeartPulse, BookHeart, Trophy };
+const insightIcons: Record<string, LucideIcon> = { HeartPulse, Smile, Moon, Dumbbell, TrendingUp, Brain };
+const insightAccents: Record<string, string> = {
+  blue: 'from-blue-500 to-blue-600',
+  emerald: 'from-emerald-500 to-emerald-600',
+  amber: 'from-amber-400 to-amber-500',
+  violet: 'from-violet-500 to-violet-600',
+  rose: 'from-rose-400 to-rose-500',
+  sky: 'from-sky-400 to-sky-500',
+};
 
 export function DashboardPage() {
   const { user } = useAuth();
@@ -95,6 +104,33 @@ export function DashboardPage() {
         <StatCard label="Mobility" value="70" unit="%" icon={<Footprints size={20} />} accent="emerald" trend={{ value: '10% higher', up: true }} />
         <StatCard label="Sleep" value="7" unit="hrs" icon={<Moon size={20} />} accent="violet" trend={{ value: '0.5h more', up: true }} />
         <StatCard label="Mood" value="9" unit="/10" icon={<Smile size={20} />} accent="amber" trend={{ value: '1 pt higher', up: true }} />
+      </div>
+
+      {/* Recovery Insights */}
+      <div className="mt-8">
+        <h3 className="mb-4 text-lg font-bold text-slate-900">Recovery Insights</h3>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {recoveryInsights.map((ins, i) => {
+            const Icon = insightIcons[ins.icon] ?? TrendingUp;
+            const good = ins.trend === 'up';
+            return (
+              <motion.div key={ins.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+                <Card hover className="h-full">
+                  <div className="flex items-start justify-between">
+                    <div className={cn('flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br text-white shadow-lg', insightAccents[ins.accent])}>
+                      <Icon size={20} />
+                    </div>
+                    <span className={cn('flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold', good ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500')}>
+                      {good ? <TrendingUp size={12} /> : <TrendingUp size={12} className="rotate-180" />} {ins.trendValue}
+                    </span>
+                  </div>
+                  <h4 className="mt-4 font-bold text-slate-900">{ins.title}</h4>
+                  <p className="mt-1 text-sm leading-relaxed text-slate-500">{ins.description}</p>
+                </Card>
+              </motion.div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Today's Recovery Plan */}

@@ -9,6 +9,11 @@ import {
   User,
   X,
   Wind,
+  BarChart3,
+  Trophy,
+  Calendar,
+  FileText,
+  Settings,
 } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
 import { cn } from '@/lib/cn';
@@ -25,8 +30,13 @@ const navItems = [
   { to: '/app/mind', label: 'Mind Recovery', icon: Wind },
   { to: '/app/exercises', label: 'Exercise Library', icon: Dumbbell },
   { to: '/app/progress', label: 'Progress', icon: LineChart },
+  { to: '/app/analytics', label: 'Analytics', icon: BarChart3 },
   { to: '/app/coach', label: 'AI Coach', icon: Sparkles },
+  { to: '/app/calendar', label: 'Calendar', icon: Calendar },
+  { to: '/app/achievements', label: 'Achievements', icon: Trophy },
+  { to: '/app/report', label: 'Recovery Report', icon: FileText },
   { to: '/app/profile', label: 'Profile', icon: User },
+  { to: '/app/settings', label: 'Settings', icon: Settings },
 ];
 
 export function Sidebar({ open, onClose }: SidebarProps) {
@@ -56,6 +66,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
         <nav className="flex-1 space-y-1 px-3 py-4">
           <p className="px-3 pb-2 text-xs font-bold uppercase tracking-wider text-slate-400">Menu</p>
+        <div className="max-h-[calc(100vh-280px)] space-y-1 overflow-y-auto pb-2">
           {navItems.map((item) => {
             const active = location.pathname === item.to;
             return (
@@ -84,6 +95,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               </NavLink>
             );
           })}
+        </div>
         </nav>
 
         <div className="m-3 rounded-2xl bg-gradient-to-br from-blue-600 to-emerald-500 p-5 text-white">
