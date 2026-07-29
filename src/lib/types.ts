@@ -27,10 +27,12 @@ export interface RecoveryEntry {
   date: string;
   pain: number;
   mobility: number;
+  strength: number;
   sleep: number;
   energy: number;
   swelling: number;
   mood: number;
+  medication: boolean;
   notes: string;
 }
 
@@ -61,6 +63,17 @@ export interface JournalEntry {
   feeling: string;
   win: string;
   challenge: string;
+  grateful: string;
+}
+
+export interface RecoveryStoryMilestone {
+  id: string;
+  phase: string;
+  date: string;
+  title: string;
+  description: string;
+  achieved: boolean;
+  icon: string;
 }
 
 export interface TimelineMilestone {

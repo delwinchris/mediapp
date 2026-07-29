@@ -18,6 +18,7 @@ import type {
   RecoveryPlanItem,
   ActivityItem,
   OnboardingData,
+  RecoveryStoryMilestone,
 } from './types';
 
 export const mockUser: UserProfile = {
@@ -45,13 +46,13 @@ export const dailyGoals: DailyGoal[] = [
 ];
 
 export const recoveryHistory: RecoveryEntry[] = [
-  { id: 'r1', date: '2026-07-21', pain: 6, mobility: 4, sleep: 6, energy: 5, swelling: 7, mood: 5, notes: 'Stiffness in the morning, eased after warm-up.' },
-  { id: 'r2', date: '2026-07-22', pain: 5, mobility: 5, sleep: 7, energy: 6, swelling: 6, mood: 6, notes: 'Felt good after physio session.' },
-  { id: 'r3', date: '2026-07-23', pain: 5, mobility: 5, sleep: 6, energy: 6, swelling: 5, mood: 6, notes: 'Steady day, no major setbacks.' },
-  { id: 'r4', date: '2026-07-24', pain: 4, mobility: 6, sleep: 7, energy: 7, swelling: 4, mood: 7, notes: 'Managed a longer walk.' },
-  { id: 'r5', date: '2026-07-25', pain: 4, mobility: 6, sleep: 8, energy: 7, swelling: 4, mood: 8, notes: 'Best sleep in weeks.' },
-  { id: 'r6', date: '2026-07-26', pain: 3, mobility: 7, sleep: 7, energy: 8, swelling: 3, mood: 8, notes: 'Tried light cycling.' },
-  { id: 'r7', date: '2026-07-27', pain: 3, mobility: 7, sleep: 7, energy: 8, swelling: 3, mood: 9, notes: 'Feeling optimistic today.' },
+  { id: 'r1', date: '2026-07-21', pain: 6, mobility: 4, strength: 30, sleep: 6, energy: 5, swelling: 7, mood: 5, medication: true, notes: 'Stiffness in the morning, eased after warm-up.' },
+  { id: 'r2', date: '2026-07-22', pain: 5, mobility: 5, strength: 35, sleep: 7, energy: 6, swelling: 6, mood: 6, medication: true, notes: 'Felt good after physio session.' },
+  { id: 'r3', date: '2026-07-23', pain: 5, mobility: 5, strength: 38, sleep: 6, energy: 6, swelling: 5, mood: 6, medication: true, notes: 'Steady day, no major setbacks.' },
+  { id: 'r4', date: '2026-07-24', pain: 4, mobility: 6, strength: 42, sleep: 7, energy: 7, swelling: 4, mood: 7, medication: false, notes: 'Managed a longer walk.' },
+  { id: 'r5', date: '2026-07-25', pain: 4, mobility: 6, strength: 45, sleep: 8, energy: 7, swelling: 4, mood: 8, medication: true, notes: 'Best sleep in weeks.' },
+  { id: 'r6', date: '2026-07-26', pain: 3, mobility: 7, strength: 50, sleep: 7, energy: 8, swelling: 3, mood: 8, medication: true, notes: 'Tried light cycling.' },
+  { id: 'r7', date: '2026-07-27', pain: 3, mobility: 7, strength: 55, sleep: 7, energy: 8, swelling: 3, mood: 9, medication: true, notes: 'Feeling optimistic today.' },
 ];
 
 export const mentalHistory: MentalEntry[] = [
@@ -299,9 +300,9 @@ export const mindHistory: MindCheckIn[] = [
 export const mindChartDates = recoveryHistory.map((e) => e.date.slice(5));
 
 export const journalEntries: JournalEntry[] = [
-  { id: 'j1', date: '2026-07-25', feeling: 'Hopeful and rested', win: 'Walked 2km without pain', challenge: 'Stairs still feel scary' },
-  { id: 'j2', date: '2026-07-26', feeling: 'Proud and strong', win: 'First bike ride since surgery', challenge: 'Getting out of bed early' },
-  { id: 'j3', date: '2026-07-27', feeling: 'Calm and optimistic', win: 'Did all my exercises', challenge: 'Pushing through fear of jumping' },
+  { id: 'j1', date: '2026-07-25', feeling: 'Hopeful and rested', win: 'Walked 2km without pain', challenge: 'Stairs still feel scary', grateful: 'Grateful for my supportive partner.' },
+  { id: 'j2', date: '2026-07-26', feeling: 'Proud and strong', win: 'First bike ride since surgery', challenge: 'Getting out of bed early', grateful: 'Grateful for the good weather.' },
+  { id: 'j3', date: '2026-07-27', feeling: 'Calm and optimistic', win: 'Did all my exercises', challenge: 'Pushing through fear of jumping', grateful: 'Grateful for my physio team.' },
 ];
 
 export const timelineMilestones: TimelineMilestone[] = [
@@ -315,10 +316,10 @@ export const timelineMilestones: TimelineMilestone[] = [
 ];
 
 export const breathingExercises: BreathingExercise[] = [
-  { id: 'b1', name: '5-Minute Breathing', duration: '5 min', pattern: '4-4-4-4', description: 'A simple, calming rhythm to settle your nervous system and bring you into the present moment.', color: 'from-blue-500 to-cyan-400' },
-  { id: 'b2', name: 'Box Breathing', duration: '4 min', pattern: '4-4-4-4', description: 'Used by Navy SEALs to stay calm under pressure. Inhale, hold, exhale, hold — each for 4 seconds.', color: 'from-emerald-500 to-teal-400' },
-  { id: 'b3', name: 'Calm Mind', duration: '6 min', pattern: '4-7-8', description: 'A longer exhale signals safety to your body, easing anxiety and quieting mental chatter.', color: 'from-violet-500 to-purple-400' },
-  { id: 'b4', name: 'Progressive Relaxation', duration: '8 min', pattern: 'Tense & Release', description: 'Guided body-scan that releases tension from head to toe, perfect before sleep.', color: 'from-amber-500 to-orange-400' },
+  { id: 'b1', name: 'Box Breathing', duration: '4 min', pattern: '4-4-4-4', description: 'Used by Navy SEALs to stay calm under pressure. Inhale, hold, exhale, hold — each for 4 seconds.', color: 'from-blue-500 to-cyan-400' },
+  { id: 'b2', name: 'Deep Breathing', duration: '5 min', pattern: '4-7-8', description: 'A longer exhale signals safety to your body, easing anxiety and quieting mental chatter.', color: 'from-emerald-500 to-teal-400' },
+  { id: 'b3', name: 'Progressive Muscle Relaxation', duration: '8 min', pattern: 'Tense & Release', description: 'Guided body-scan that releases tension from head to toe, perfect before sleep.', color: 'from-violet-500 to-purple-400' },
+  { id: 'b4', name: 'Mindfulness Session', duration: '10 min', pattern: 'Observe & Accept', description: 'A guided meditation to anchor you in the present moment without judgment.', color: 'from-amber-500 to-orange-400' },
 ];
 
 export const motivationStories: MotivationStory[] = [
@@ -396,3 +397,21 @@ export const recentActivity: ActivityItem[] = [
 export const dailyMotivation = 'You don\'t have to be perfect. You just have to keep showing up. Today is another step forward.';
 
 export const aiCoachMessage = 'Your recovery has been consistent this week. Continue your exercises and maintain good sleep habits. If symptoms worsen, consult your healthcare professional.';
+
+export const aiMentalReflection = "You've remained consistent with your recovery this week. Your confidence has increased while stress has decreased. Continue focusing on your recovery routine.";
+
+export const swellingLevels = [
+  { value: 0, label: 'None' },
+  { value: 3, label: 'Mild' },
+  { value: 6, label: 'Moderate' },
+  { value: 9, label: 'Severe' },
+];
+
+export const recoveryStory: RecoveryStoryMilestone[] = [
+  { id: 'rs1', phase: 'Day 1', date: '2026-05-14', title: 'Surgery Completed', description: 'ACL reconstruction surgery completed successfully. The journey begins.', achieved: true, icon: 'Flag' },
+  { id: 'rs2', phase: 'Week 2', date: '2026-05-28', title: 'First Pain-Free Day', description: 'Woke up without pain for the first time since surgery.', achieved: true, icon: 'HeartPulse' },
+  { id: 'rs3', phase: 'Month 1', date: '2026-06-14', title: 'First Walk', description: 'Walked around the block unassisted — 800 meters.', achieved: true, icon: 'Footprints' },
+  { id: 'rs4', phase: 'Month 3', date: '2026-08-14', title: 'First Full Range of Motion', description: 'Regained full knee flexion matching the uninjured leg.', achieved: false, icon: 'Activity' },
+  { id: 'rs5', phase: 'Month 6', date: '2026-11-14', title: 'First Gym Session', description: 'Completed a full strength and conditioning session with physio.', achieved: false, icon: 'Dumbbell' },
+  { id: 'rs6', phase: 'Return to Sport', date: '2027-02-14', title: 'Return to Sport', description: 'Target: first competitive race post-recovery.', achieved: false, icon: 'Trophy' },
+];
