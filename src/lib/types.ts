@@ -263,3 +263,51 @@ export interface ReportSummary {
   exerciseConsistency: number;
   streak: number;
 }
+
+export interface NotificationItem {
+  id: string;
+  type: 'exercise' | 'pain' | 'hydration' | 'report' | 'appointment' | 'streak' | 'achievement' | 'ai';
+  title: string;
+  description: string;
+  time: string;
+  read: boolean;
+  icon: string;
+}
+
+export interface ExerciseDetail {
+  id: string;
+  name: string;
+  category: string;
+  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+  sets: number;
+  reps: number;
+  duration: string;
+  description: string;
+  musclesTargeted: string[];
+  equipment: string[];
+  tips: string[];
+  commonMistakes: string[];
+  safetyNotes: string[];
+  image: string;
+}
+
+export interface SearchResult {
+  id: string;
+  type: 'exercise' | 'log' | 'journal' | 'milestone' | 'ai';
+  title: string;
+  description: string;
+  route: string;
+  icon: string;
+}
+
+export interface AdvancedInsight {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  trend: 'up' | 'down' | 'neutral';
+  trendValue: string;
+  accent: 'blue' | 'emerald' | 'amber' | 'violet' | 'rose' | 'sky';
+  metric: string;
+  change: number;
+}

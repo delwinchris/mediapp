@@ -25,6 +25,10 @@ import type {
   RecoveryInsight,
   AnalyticsSeries,
   ReportSummary,
+  NotificationItem,
+  ExerciseDetail,
+  SearchResult,
+  AdvancedInsight,
 } from './types';
 
 export const mockUser: UserProfile = {
@@ -554,3 +558,155 @@ export const reportSummary: ReportSummary = {
 export const aiReportSummary = "Over the past 30 days, Alex has shown remarkable progress across all recovery domains. Pain has decreased by 50%, mobility improved by 40%, and strength gains are accelerating. Exercise consistency at 94% is excellent and is the primary driver of these gains. Mental wellbeing has improved in parallel — confidence has doubled while anxiety has halved. The key focus areas for the next month should be: maintaining exercise consistency, improving sleep quality (currently averaging 7.1h, target 8h), and preparing for the Month 3 range-of-motion assessment.";
 
 export const doctorNotesPlaceholder = "Doctor's notes will appear here once your healthcare provider reviews and signs off on this report. This section is reserved for clinical observations, recommendations, and next steps from your physiotherapist or surgeon.";
+
+export const notifications: NotificationItem[] = [
+  { id: 'n1', type: 'exercise', title: "Time for today's exercises", description: 'You have 3 prescribed exercises remaining. Complete them to maintain your streak.', time: '10 min ago', read: false, icon: 'Dumbbell' },
+  { id: 'n2', type: 'pain', title: "Don't forget to log your pain", description: 'A daily pain log helps your physiotherapist track your progress.', time: '1 hour ago', read: false, icon: 'HeartPulse' },
+  { id: 'n3', type: 'hydration', title: 'Hydration reminder', description: "You've had 1.5L of water today. Aim for 2.5L to support tissue repair.", time: '2 hours ago', read: false, icon: 'Droplets' },
+  { id: 'n4', type: 'report', title: 'Weekly recovery report ready', description: 'Your Week 11 recovery report is available to review and share.', time: '5 hours ago', read: true, icon: 'FileText' },
+  { id: 'n5', type: 'appointment', title: 'Upcoming appointment tomorrow', description: 'Physiotherapy with Dr. Sarah Chen at 10:30 AM.', time: 'Yesterday', read: true, icon: 'Stethoscope' },
+  { id: 'n6', type: 'streak', title: 'Recovery streak reminder', description: "You're on a 30-day streak! Log today to keep it going.", time: 'Yesterday', read: true, icon: 'Flame' },
+  { id: 'n7', type: 'achievement', title: 'New achievement unlocked!', description: 'You earned the Consistency Champion badge. Well done!', time: '2 days ago', read: true, icon: 'Trophy' },
+  { id: 'n8', type: 'ai', title: 'AI Coach insight available', description: 'Your AI coach noticed a positive trend in your recovery this week.', time: '3 days ago', read: true, icon: 'Sparkles' },
+];
+
+export const exerciseDetails: Record<string, ExerciseDetail> = {
+  e1: {
+    id: 'e1', name: 'Quad Sets', category: 'Strengthening', difficulty: 'Beginner', sets: 3, reps: 10, duration: '5 min',
+    description: 'Sit on the floor with legs straight. Tighten the muscle on top of your thigh by pressing the back of your knee down into the floor. Hold for 5 seconds, then relax.',
+    musclesTargeted: ['Quadriceps', 'VMO'], equipment: ['None'], image: 'https://images.pexels.com/photos/4761352/pexels-photo-4761352.jpeg?auto=compress&cs=tinysrgb&w=600',
+    tips: ['Focus on the inner thigh (VMO) contracting', 'Keep your toes pointed toward the ceiling', 'Breathe normally — do not hold your breath'],
+    commonMistakes: ['Arching the lower back', 'Holding breath during contraction', 'Rushing the hold — aim for a full 5 seconds'],
+    safetyNotes: ['Stop if you feel sharp pain behind the kneecap', 'Acceptable to feel a stretch or mild burn in the quad'],
+  },
+  e2: {
+    id: 'e2', name: 'Straight Leg Raises', category: 'Strengthening', difficulty: 'Beginner', sets: 3, reps: 12, duration: '6 min',
+    description: 'Lie on your back with one leg bent. Tighten the thigh muscle of the straight leg and lift it to the level of the bent knee. Slowly lower and repeat.',
+    musclesTargeted: ['Quadriceps', 'Hip Flexors', 'Core'], equipment: ['None'], image: 'https://images.pexels.com/photos/4761779/pexels-photo-4761779.jpeg?auto=compress&cs=tinysrgb&w=600',
+    tips: ['Keep the lifted leg completely straight', 'Engage your core to prevent back arching', 'Lower slowly over 3 seconds'],
+    commonMistakes: ['Bending the knee of the working leg', 'Lifting too high past the bent knee', 'Using momentum to swing the leg up'],
+    safetyNotes: ['Stop if you feel lower back pain', 'Ensure no twisting in the torso'],
+  },
+  e3: {
+    id: 'e3', name: 'Heel Slides', category: 'Mobility', difficulty: 'Beginner', sets: 3, reps: 15, duration: '5 min',
+    description: 'Lie on your back. Slowly slide your heel toward your buttocks, bending your knee as far as comfortable. Slide back down and repeat.',
+    musclesTargeted: ['Hamstrings', 'Knee Flexion'], equipment: ['None', 'Optional: sliding surface'], image: 'https://images.pexels.com/photos/4498294/pexels-photo-4498294.jpeg?auto=compress&cs=tinysrgb&w=600',
+    tips: ['Use a smooth surface or sock for easier sliding', 'Go only as far as pain allows', 'Pause briefly at maximum flexion'],
+    commonMistakes: ['Forcing the bend beyond pain threshold', 'Lifting the hips to compensate', 'Rushing the movement'],
+    safetyNotes: ['Stop if you feel pinching at the front of the knee', 'Progress should be gradual day over day'],
+  },
+  e4: {
+    id: 'e4', name: 'Wall Sits', category: 'Strengthening', difficulty: 'Intermediate', sets: 3, reps: 1, duration: '30 sec hold',
+    description: 'Lean your back against a wall and slide down until your knees are at a 90-degree angle. Hold the position, keeping your core engaged.',
+    musclesTargeted: ['Quadriceps', 'Glutes', 'Hamstrings'], equipment: ['Wall'], image: 'https://images.pexels.com/photos/4761352/pexels-photo-4761352.jpeg?auto=compress&cs=tinysrgb&w=600',
+    tips: ['Keep knees aligned over ankles, not past toes', 'Press your lower back flat against the wall', 'Breathe steadily throughout the hold'],
+    commonMistakes: ['Letting knees cave inward', 'Sliding too low past 90 degrees', 'Holding breath'],
+    safetyNotes: ['Stop if you feel knee pain (not muscle fatigue)', 'Avoid if you have patellofemoral pain syndrome'],
+  },
+  e5: {
+    id: 'e5', name: 'Single-Leg Balance', category: 'Balance', difficulty: 'Intermediate', sets: 3, reps: 1, duration: '30 sec each side',
+    description: 'Stand on one leg with a slight bend in the knee. Keep your hips level and hold for 30 seconds. Progress by closing your eyes or standing on an unstable surface.',
+    musclesTargeted: ['Proprioception', 'Glute Medius', 'Ankle Stabilizers'], equipment: ['Optional: cushion or balance pad'], image: 'https://images.pexels.com/photos/3820460/pexels-photo-3820460.jpeg?auto=compress&cs=tinysrgb&w=600',
+    tips: ['Use a chair or wall for support initially', 'Focus on a fixed point to help balance', 'Keep the standing knee slightly bent — never locked'],
+    commonMistakes: ['Locking the standing knee', 'Letting the pelvis drop on one side', 'Looking down at the floor'],
+    safetyNotes: ['Always have a support surface nearby', 'Do not close eyes without supervision initially'],
+  },
+  e6: {
+    id: 'e6', name: 'Resistance Band Walks', category: 'Strengthening', difficulty: 'Intermediate', sets: 3, reps: 10, duration: '4 min',
+    description: 'Place a resistance band around your ankles. Take small lateral steps, keeping tension on the band and knees slightly bent.',
+    musclesTargeted: ['Hip Abductors', 'Glute Medius', 'IT Band'], equipment: ['Resistance band'], image: 'https://images.pexels.com/photos/4498294/pexels-photo-4498294.jpeg?auto=compress&cs=tinysrgb&w=600',
+    tips: ['Keep toes pointed forward, not turned out', 'Maintain a slight squat throughout', 'Take small, controlled steps'],
+    commonMistakes: ['Letting the knees cave inward', 'Taking steps that are too large', 'Standing too upright'],
+    safetyNotes: ['Start with a light resistance band', 'Stop if you feel hip or knee pain'],
+  },
+  e7: {
+    id: 'e7', name: 'Step-Ups', category: 'Functional', difficulty: 'Intermediate', sets: 3, reps: 10, duration: '6 min',
+    description: 'Step onto a low platform with one foot, drive through the heel to bring the other foot up, then step back down with control.',
+    musclesTargeted: ['Quadriceps', 'Glutes', 'Hamstrings', 'Calves'], equipment: ['Step or platform'], image: 'https://images.pexels.com/photos/4761779/pexels-photo-4761779.jpeg?auto=compress&cs=tinysrgb&w=600',
+    tips: ['Drive through the heel, not the toes', 'Keep the knee aligned over the ankle', 'Lower slowly with control'],
+    commonMistakes: ['Pushing off the bottom foot', 'Letting the knee collapse inward', 'Using momentum'],
+    safetyNotes: ['Start with a very low step (10-15cm)', 'Use a railing for balance if needed'],
+  },
+  e8: {
+    id: 'e8', name: 'Box Jumps (Low)', category: 'Plyometric', difficulty: 'Advanced', sets: 3, reps: 8, duration: '5 min',
+    description: 'Only attempt late in recovery. Jump onto a low, stable box, landing softly with knees aligned over toes. Step down between reps.',
+    musclesTargeted: ['Quadriceps', 'Glutes', 'Calves', 'Explosive Power'], equipment: ['Plyo box'], image: 'https://images.pexels.com/photos/3820460/pexels-photo-3820460.jpeg?auto=compress&cs=tinysrgb&w=600',
+    tips: ['Land softly — absorb the impact with bent knees', 'Step down — never jump down', 'Start with the lowest possible box'],
+    commonMistakes: ['Jumping down instead of stepping', 'Landing with locked knees', 'Using a box that is too high'],
+    safetyNotes: ['Only attempt after clearance from your physiotherapist', 'Ensure the box is stable and on a non-slip surface', 'Stop immediately on any knee pain'],
+  },
+};
+
+export const advancedInsights: AdvancedInsight[] = [
+  { id: 'ai1', title: 'Pain has reduced 42%', description: 'Your average pain dropped from 6.2 to 3.6 over the past 30 days — your best monthly improvement yet.', icon: 'HeartPulse', trend: 'down', trendValue: '42%', accent: 'rose', metric: 'Pain Level', change: -42 },
+  { id: 'ai2', title: 'Mobility has improved 18%', description: 'Knee flexion increased from 110° to 130° this month, bringing you closer to full range of motion.', icon: 'Footprints', trend: 'up', trendValue: '+18%', accent: 'emerald', metric: 'Mobility', change: 18 },
+  { id: 'ai3', title: 'Sleep has been inconsistent', description: 'Your sleep averaged 6.2h over 5 days — below your 8h target. Poor sleep slows tissue repair.', icon: 'Moon', trend: 'down', trendValue: '-1.8h', accent: 'amber', metric: 'Sleep', change: -18 },
+  { id: 'ai4', title: '11-day exercise streak', description: 'You have completed your prescribed exercises 11 days in a row. Consistency is the #1 recovery driver.', icon: 'Flame', trend: 'up', trendValue: '11 days', accent: 'blue', metric: 'Streak', change: 11 },
+  { id: 'ai5', title: 'Recovery readiness increased by 8%', description: 'Your overall readiness score rose from 70 to 78, driven by reduced pain and improved mobility.', icon: 'TrendingUp', trend: 'up', trendValue: '+8%', accent: 'violet', metric: 'Readiness', change: 8 },
+  { id: 'ai6', title: 'Confidence doubled', description: 'Confidence scores rose from 4 to 8 as you hit mobility milestones and returned to cycling.', icon: 'Smile', trend: 'up', trendValue: '+100%', accent: 'emerald', metric: 'Confidence', change: 100 },
+];
+
+export const searchResults: SearchResult[] = [
+  { id: 's1', type: 'exercise', title: 'Quad Sets', description: 'Strengthening · Beginner · 3 sets × 10 reps', route: '/app/exercises/e1', icon: 'Dumbbell' },
+  { id: 's2', type: 'exercise', title: 'Straight Leg Raises', description: 'Strengthening · Beginner · 3 sets × 12 reps', route: '/app/exercises/e2', icon: 'Dumbbell' },
+  { id: 's3', type: 'exercise', title: 'Heel Slides', description: 'Mobility · Beginner · 3 sets × 15 reps', route: '/app/exercises/e3', icon: 'Footprints' },
+  { id: 's4', type: 'exercise', title: 'Wall Sits', description: 'Strengthening · Intermediate · 30 sec hold', route: '/app/exercises/e4', icon: 'Dumbbell' },
+  { id: 's5', type: 'exercise', title: 'Single-Leg Balance', description: 'Balance · Intermediate · 30 sec each side', route: '/app/exercises/e5', icon: 'Activity' },
+  { id: 's6', type: 'exercise', title: 'Step-Ups', description: 'Functional · Intermediate · 3 sets × 10 reps', route: '/app/exercises/e6', icon: 'Dumbbell' },
+  { id: 's7', type: 'log', title: 'Recovery Log — Jul 27', description: 'Pain: 3/10 · Mobility: 7/10 · Mood: 9/10', route: '/app/tracker', icon: 'HeartPulse' },
+  { id: 's8', type: 'log', title: 'Recovery Log — Jul 26', description: 'Pain: 3/10 · Mobility: 7/10 · Mood: 8/10', route: '/app/tracker', icon: 'HeartPulse' },
+  { id: 's9', type: 'journal', title: 'Journal — Jul 27', description: 'Calm and optimistic · Did all my exercises', route: '/app/mental', icon: 'BookHeart' },
+  { id: 's10', type: 'journal', title: 'Journal — Jul 26', description: 'Proud and strong · First bike ride since surgery', route: '/app/mental', icon: 'BookHeart' },
+  { id: 's11', type: 'milestone', title: 'First bike ride', description: 'Milestone achieved on Jul 26, 2026', route: '/app/progress', icon: 'Trophy' },
+  { id: 's12', type: 'milestone', title: 'First gym session', description: 'Milestone achieved on Jul 9, 2026', route: '/app/progress', icon: 'Dumbbell' },
+  { id: 's13', type: 'ai', title: 'AI Conversation — Pain question', description: 'Why is my pain worse today?', route: '/app/coach', icon: 'Sparkles' },
+  { id: 's14', type: 'ai', title: 'AI Conversation — Return to sport', description: 'When can I return to sports?', route: '/app/coach', icon: 'Sparkles' },
+];
+
+export const personalizedPlan = {
+  injury: 'ACL Reconstruction Surgery',
+  stage: 'Mid-Recovery (Week 10-12)',
+  painLevel: 3,
+  mobilityLevel: 70,
+  todayGoals: [
+    { id: 'pg1', title: 'Complete 3 strengthening exercises', detail: 'Quad Sets, Straight Leg Raises, Wall Sits', done: false },
+    { id: 'pg2', title: 'Walk 2,000 steps', detail: 'Outdoor walk, comfortable pace', done: true },
+    { id: 'pg3', title: 'Ice knee for 15 minutes post-exercise', detail: 'After your strength session', done: false },
+    { id: 'pg4', title: 'Log recovery tracker entry', detail: 'Pain, mobility, sleep, mood', done: false },
+  ],
+  weeklyGoals: [
+    { id: 'wg1', title: 'Complete 5 exercise sessions', detail: 'At least 3 strengthening + 2 mobility', progress: 80 },
+    { id: 'wg2', title: 'Increase knee flexion to 130°', detail: 'Currently at 125° — 5° to go', progress: 90 },
+    { id: 'wg3', title: 'Walk 14,000 total steps', detail: 'Daily average of 2,000 steps', progress: 75 },
+    { id: 'wg4', title: 'Sleep 7+ hours each night', detail: 'Target 8h for optimal tissue repair', progress: 60 },
+  ],
+  milestones: [
+    { id: 'pm1', phase: 'Week 12', date: '2026-08-14', title: 'Full Range of Motion', description: 'Regain 135° knee flexion matching the uninjured leg.', achieved: false, icon: 'Activity' },
+    { id: 'pm2', phase: 'Month 4', date: '2026-09-15', title: 'First Light Jog', description: 'Begin return-to-running progression with physio supervision.', achieved: false, icon: 'Footprints' },
+    { id: 'pm3', phase: 'Month 6', date: '2026-11-14', title: 'Full Gym Sessions', description: 'Complete strength and conditioning sessions independently.', achieved: false, icon: 'Dumbbell' },
+    { id: 'pm4', phase: 'Month 9', date: '2027-02-14', title: 'Return to Sport Assessment', description: 'Pass functional movement and strength symmetry tests.', achieved: false, icon: 'Trophy' },
+  ],
+  timeline: [
+    { id: 'pt1', phase: 'Weeks 0-2', title: 'Protection Phase', description: 'Brace, crutches, pain management, gentle quad activation.', status: 'completed' as const },
+    { id: 'pt2', phase: 'Weeks 2-6', title: 'Early Mobility', description: 'Range of motion exercises, progressive weight-bearing, gait training.', status: 'completed' as const },
+    { id: 'pt3', phase: 'Weeks 6-12', title: 'Strength Building', description: 'Progressive loading, balance training, stationary cycling. You are here.', status: 'current' as const },
+    { id: 'pt4', phase: 'Months 3-6', title: 'Return to Activity', description: 'Jogging progression, sport-specific drills, advanced strengthening.', status: 'upcoming' as const },
+    { id: 'pt5', phase: 'Months 6-9', title: 'Return to Sport', description: 'Plyometrics, agility training, functional movement assessment.', status: 'upcoming' as const },
+    { id: 'pt6', phase: 'Months 9-12', title: 'Full Recovery', description: 'Competitive sport, maintenance program, long-term joint health.', status: 'upcoming' as const },
+  ],
+};
+
+export const weeklySummary = {
+  scoreChange: 12,
+  painChange: -2,
+  mobilityChange: 10,
+  exerciseCompletion: 94,
+  sleepAverage: 7.1,
+  streak: 30,
+  highlights: [
+    'Pain dropped from 5 to 3 — your best week yet',
+    'Completed 94% of prescribed exercises',
+    'Reached 70% mobility, up 10% from last week',
+    'First bike ride since surgery on Jul 26',
+  ],
+};

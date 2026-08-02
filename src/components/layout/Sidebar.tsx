@@ -14,6 +14,10 @@ import {
   Calendar,
   FileText,
   Settings,
+  Bell,
+  Target,
+  Lightbulb,
+  ClipboardList,
 } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
 import { cn } from '@/lib/cn';
@@ -32,9 +36,12 @@ const navItems = [
   { to: '/app/progress', label: 'Progress', icon: LineChart },
   { to: '/app/analytics', label: 'Analytics', icon: BarChart3 },
   { to: '/app/coach', label: 'AI Coach', icon: Sparkles },
+  { to: '/app/insights', label: 'AI Insights', icon: Lightbulb },
+  { to: '/app/plan', label: 'Recovery Plan', icon: Target },
   { to: '/app/calendar', label: 'Calendar', icon: Calendar },
   { to: '/app/achievements', label: 'Achievements', icon: Trophy },
   { to: '/app/report', label: 'Recovery Report', icon: FileText },
+  { to: '/app/notifications', label: 'Notifications', icon: Bell },
   { to: '/app/profile', label: 'Profile', icon: User },
   { to: '/app/settings', label: 'Settings', icon: Settings },
 ];

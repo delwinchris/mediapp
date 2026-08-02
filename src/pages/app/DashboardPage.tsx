@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import {
   HeartPulse, Smile, Moon, Footprints, Flame, ArrowRight, Check, Sparkles, Dumbbell,
   Droplets, Pill, TrendingUp, BookHeart, Trophy, LifeBuoy, Calendar, Quote, Brain,
+  Sunrise, Sun, Sunset, Moon as MoonIcon, Play, ClipboardList, Activity, Stethoscope,
   type LucideIcon,
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line } from 'recharts';
@@ -14,9 +15,9 @@ import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/lib/auth';
 import {
   recoveryPlan, recentActivity, dailyMotivation, aiCoachMessage,
-  dailyGoals, upcomingExercises, recoveryInsights,
+  dailyGoals, upcomingExercises, recoveryInsights, weeklySummary, recoveryStory,
 } from '@/lib/mockData';
-import { computeRecoveryScore, recoveryScoreSeries, painSeries, mobilitySeries, getStreak } from '@/lib/analytics';
+import { computeRecoveryScore, recoveryScoreSeries, painSeries, mobilitySeries, getStreak, formatDate } from '@/lib/analytics';
 import { cn } from '@/lib/cn';
 
 const planIcons: Record<string, LucideIcon> = { Dumbbell, Droplets, Pill, Footprints };
@@ -40,22 +41,71 @@ export function DashboardPage() {
 
   const firstName = user?.name?.split(' ')[0] ?? 'there';
   const recoveryDay = 74;
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  const greetingIcon = hour < 12 ? Sunrise : hour < 18 ? Sun : Sunset;
+  const GreetingIcon = greetingIcon;
   const toggleGoal = (id: string) => setGoals((gs) => gs.map((g) => (g.id === id ? { ...g, done: !g.done } : g)));
   const completedGoals = goals.filter((g) => g.done).length;
 
   const painData = painSeries();
   const mobilityData = mobilitySeries();
 
+  const quickActions = [
+    { label: 'Log Recovery', icon: HeartPulse, route: '/app/tracker', color: 'from-rose-400 to-rose-500' },
+    { label: 'Exercises', icon: Dumbbell, route: '/app/exercises', color: 'from-blue-500 to-blue-600' },
+    { label: 'AI Coach', icon: Sparkles, route: '/app/coach', color: 'from-emerald-500 to-emerald-600' },
+    { label: 'Calendar', icon: Calendar, route: '/app/calendar', color: 'from-violet-500 to-violet-600' },
+  ];
+
+  const upcomingMilestones = recoveryStory.filter((m) => !m.achieved).slice(0, 3);
+
   return (
     <AppLayout>
       {/* Welcome header */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-        <p className="text-sm font-medium text-slate-500">Welcome back,</p>
+        <div className="flex items-center gap-2">
+          <GreetingIcon size={20} className="text-amber-500" />
+          <p className="text-sm font-medium text-slate-500">{greeting},</p>
+        </div>
         <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{firstName}</h2>
         <p className="mt-1 text-slate-500">
           You're on a <span className="font-semibold text-emerald-600">{streak}-day streak</span>. Keep showing up.
         </p>
       </motion.div>
+
+      {/* Quick Actions */}
+      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {quickActions.map((a, i) => (
+          <motion.div key={a.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+            <Link to={a.route}>
+              <Card hover className="flex items-center gap-3 py-4">
+                <div className={cn('flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br text-white shadow-lg', a.color)}>
+                  <a.icon size={18} />
+                </div>
+                <span className="text-sm font-bold text-slate-700">{a.label}</span>
+              </Card>
+            </Link>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Continue Recovery */}
+      <Card glass className="relative mb-6 overflow-hidden bg-gradient-to-br from-blue-600 to-emerald-500 text-white">
+        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 backdrop-blur"><Play size={22} /></div>
+            <div>
+              <h3 className="font-bold">Continue your recovery</h3>
+              <p className="text-sm text-blue-100">You have 3 exercises remaining today. Keep your streak going!</p>
+            </div>
+          </div>
+          <Link to="/app/exercises">
+            <Button className="bg-white text-blue-700 hover:bg-blue-50" size="sm">Continue <ArrowRight size={16} /></Button>
+          </Link>
+        </div>
+      </Card>
 
       {/* Top section: Recovery Day, Score, Motivation */}
       <div className="grid gap-6 lg:grid-cols-3">
@@ -214,7 +264,106 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {/* AI Coach Preview + Daily Goals */}
+      {/* AI Insight Card */}
+      <div className="mt-8">
+        <Card glass className="relative overflow-hidden bg-gradient-to-br from-violet-500 via-purple-500 to-blue-500 text-white">
+          <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+          <div className="relative flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/20 backdrop-blur"><Sparkles size={24} /></div>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-violet-100">AI Recovery Insight</p>
+              <p className="mt-2 text-base font-medium leading-relaxed">{aiCoachMessage}</p>
+              <Link to="/app/insights" className="mt-4 inline-block">
+                <Button className="bg-white/20 text-white hover:bg-white/30" size="sm">View all insights <ArrowRight size={14} /></Button>
+              </Link>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Today's Checklist */}
+      <div className="mt-8">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900"><ClipboardList size={20} className="text-blue-500" /> Today's Checklist</h3>
+          <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-600">{completedGoals}/{goals.length} done</span>
+        </div>
+        <Card>
+          <div className="space-y-2">
+            {goals.map((g) => (
+              <button key={g.id} onClick={() => toggleGoal(g.id)} className="flex w-full items-center gap-3 rounded-2xl border border-slate-100 p-3 text-left transition-colors hover:bg-slate-50">
+                <div className={cn('flex h-6 w-6 items-center justify-center rounded-lg border-2 transition-all', g.done ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-300')}>
+                  {g.done && <Check size={14} />}
+                </div>
+                <span className={cn('text-sm font-medium', g.done ? 'text-slate-400 line-through' : 'text-slate-700')}>{g.title}</span>
+              </button>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      {/* Weekly Progress Summary */}
+      <div className="mt-8">
+        <h3 className="mb-4 text-lg font-bold text-slate-900">Weekly Progress Summary</h3>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card hover className="bg-gradient-to-br from-emerald-50 to-green-50">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 text-white"><TrendingUp size={18} /></div>
+              <div><p className="text-2xl font-bold text-slate-900">+{weeklySummary.scoreChange}</p><p className="text-xs text-slate-500">Recovery score</p></div>
+            </div>
+          </Card>
+          <Card hover className="bg-gradient-to-br from-rose-50 to-pink-50">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500 text-white"><HeartPulse size={18} /></div>
+              <div><p className="text-2xl font-bold text-slate-900">{weeklySummary.painChange}</p><p className="text-xs text-slate-500">Pain change</p></div>
+            </div>
+          </Card>
+          <Card hover className="bg-gradient-to-br from-blue-50 to-sky-50">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500 text-white"><Dumbbell size={18} /></div>
+              <div><p className="text-2xl font-bold text-slate-900">{weeklySummary.exerciseCompletion}%</p><p className="text-xs text-slate-500">Exercise completion</p></div>
+            </div>
+          </Card>
+          <Card hover className="bg-gradient-to-br from-amber-50 to-orange-50">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500 text-white"><Flame size={18} /></div>
+              <div><p className="text-2xl font-bold text-slate-900">{weeklySummary.streak}</p><p className="text-xs text-slate-500">Day streak</p></div>
+            </div>
+          </Card>
+        </div>
+        <Card className="mt-4">
+          <h4 className="mb-3 font-bold text-slate-900">This week's highlights</h4>
+          <ul className="space-y-2">
+            {weeklySummary.highlights.map((h, i) => (
+              <motion.li key={i} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} className="flex items-start gap-2 text-sm text-slate-600">
+                <Check size={16} className="mt-0.5 shrink-0 text-emerald-500" /> {h}
+              </motion.li>
+            ))}
+          </ul>
+        </Card>
+      </div>
+
+      {/* Upcoming Milestones */}
+      <div className="mt-8">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-lg font-bold text-slate-900">Upcoming Milestones</h3>
+          <Link to="/app/plan"><Button variant="ghost" size="sm">View plan <ArrowRight size={16} /></Button></Link>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {upcomingMilestones.map((m, i) => (
+            <motion.div key={m.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+              <Card hover className="h-full">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-emerald-500 text-white shadow-lg"><Trophy size={18} /></div>
+                <span className="mt-3 inline-block rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-600">{m.phase}</span>
+                <h4 className="mt-2 font-bold text-slate-900">{m.title}</h4>
+                <p className="mt-1 text-xs leading-relaxed text-slate-500">{m.description}</p>
+                <p className="mt-2 text-xs font-semibold text-slate-400">{formatDate(m.date)}</p>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      {/* AI Coach Preview */}
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
         <Card glass className="relative overflow-hidden bg-gradient-to-br from-blue-600 to-emerald-500 text-white">
           <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
@@ -234,46 +383,19 @@ export function DashboardPage() {
 
         <Card className="lg:col-span-2">
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="font-bold text-slate-900">Daily Goals</h3>
-            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-600">{completedGoals}/{goals.length} done</span>
+            <h3 className="font-bold text-slate-900">Recent Activity</h3>
+            <span className="text-xs text-slate-400">Last 5 actions</span>
           </div>
           <div className="space-y-2">
-            {goals.map((g) => (
-              <button key={g.id} onClick={() => toggleGoal(g.id)} className="flex w-full items-center gap-3 rounded-2xl border border-slate-100 p-3 text-left transition-colors hover:bg-slate-50">
-                <div className={cn('flex h-6 w-6 items-center justify-center rounded-lg border-2 transition-all', g.done ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-300')}>
-                  {g.done && <Check size={14} />}
+            {recentActivity.slice(0, 4).map((a) => {
+              const Icon = activityIcons[a.icon] ?? Check;
+              return (
+                <div key={a.id} className="flex items-center gap-3 rounded-2xl border border-slate-100 p-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600"><Icon size={14} /></div>
+                  <div className="flex-1"><p className="text-sm font-semibold text-slate-700">{a.title}</p><p className="text-xs text-slate-400">{a.time}</p></div>
                 </div>
-                <span className={cn('text-sm font-medium', g.done ? 'text-slate-400 line-through' : 'text-slate-700')}>{g.title}</span>
-              </button>
-            ))}
-          </div>
-        </Card>
-      </div>
-
-      {/* Recent Activity */}
-      <div className="mt-8">
-        <h3 className="mb-4 text-lg font-bold text-slate-900">Recent Activity</h3>
-        <Card>
-          <div className="relative">
-            <div className="absolute left-[19px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-blue-300 to-slate-100" />
-            <div className="space-y-5">
-              {recentActivity.map((a, i) => {
-                const Icon = activityIcons[a.icon] ?? Check;
-                return (
-                  <motion.div key={a.id} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} className="relative flex gap-4">
-                    <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-emerald-500 text-white shadow-md">
-                      <Icon size={16} />
-                    </div>
-                    <div className="flex flex-1 items-center justify-between rounded-2xl border border-slate-100 bg-white p-3">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-800">{a.title}</p>
-                        <p className="text-xs text-slate-400">{a.time}</p>
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
+              );
+            })}
           </div>
         </Card>
       </div>
