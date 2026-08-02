@@ -8,6 +8,7 @@ const titles: Record<string, string> = {
   '/app/tracker': 'Recovery Tracker',
   '/app/mental': 'Mental Recovery',
   '/app/mind': 'Mind Recovery',
+  '/app/journal': 'Journal',
   '/app/exercises': 'Exercise Library',
   '/app/progress': 'Progress',
   '/app/coach': 'AI Coach',
@@ -19,6 +20,7 @@ const titles: Record<string, string> = {
   '/app/notifications': 'Notifications',
   '/app/plan': 'Recovery Plan',
   '/app/insights': 'AI Insights',
+  '/app/goals': 'Goals',
   '/app/settings': 'Settings',
 };
 

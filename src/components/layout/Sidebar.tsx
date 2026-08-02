@@ -18,6 +18,7 @@ import {
   Target,
   Lightbulb,
   ClipboardList,
+  BookHeart,
 } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
 import { cn } from '@/lib/cn';
@@ -32,12 +33,14 @@ const navItems = [
   { to: '/app/tracker', label: 'Recovery Tracker', icon: HeartPulse },
   { to: '/app/mental', label: 'Mental Recovery', icon: Brain },
   { to: '/app/mind', label: 'Mind Recovery', icon: Wind },
+  { to: '/app/journal', label: 'Journal', icon: BookHeart },
   { to: '/app/exercises', label: 'Exercise Library', icon: Dumbbell },
   { to: '/app/progress', label: 'Progress', icon: LineChart },
   { to: '/app/analytics', label: 'Analytics', icon: BarChart3 },
+  { to: '/app/goals', label: 'Goals', icon: Target },
   { to: '/app/coach', label: 'AI Coach', icon: Sparkles },
   { to: '/app/insights', label: 'AI Insights', icon: Lightbulb },
-  { to: '/app/plan', label: 'Recovery Plan', icon: Target },
+  { to: '/app/plan', label: 'Recovery Plan', icon: ClipboardList },
   { to: '/app/calendar', label: 'Calendar', icon: Calendar },
   { to: '/app/achievements', label: 'Achievements', icon: Trophy },
   { to: '/app/report', label: 'Recovery Report', icon: FileText },

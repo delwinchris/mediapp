@@ -8,6 +8,8 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Input';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { useAppStore } from '@/lib/store';
+import { useTheme } from '@/hooks/useTheme';
 import { cn } from '@/lib/cn';
 
 const sections = [
@@ -19,32 +21,20 @@ const sections = [
   { id: 'export', label: 'Export Data', icon: Download },
 ] as const;
 
-const notificationSettings = [
-  { label: 'Daily recovery reminder', desc: 'Get reminded to log your recovery each morning', on: true },
-  { label: 'Exercise reminders', desc: 'Notifications for your prescribed exercises', on: true },
-  { label: 'Weekly progress summary', desc: 'A recap of your recovery every Sunday', on: true },
-  { label: 'AI coach insights', desc: 'When the coach notices a trend worth sharing', on: false },
-  { label: 'Achievement unlocked', desc: 'Celebrate when you earn a new badge', on: true },
-  { label: 'Streak milestones', desc: 'Celebrate when you hit streak goals', on: true },
-];
-
-const privacySettings = [
-  { label: 'Share data with physiotherapist', desc: 'Allow your physio to view your recovery progress', on: true },
-  { label: 'Anonymous analytics', desc: 'Help improve MediRecover by sharing anonymous usage data', on: true },
-  { label: 'AI training opt-out', desc: 'Prevent your conversations from being used to train AI models', on: false },
-];
-
-const accessibilitySettings = [
-  { label: 'Large text', desc: 'Increase font size for better readability', on: false },
-  { label: 'High contrast mode', desc: 'Maximize contrast between text and background', on: false },
-  { label: 'Reduce motion', desc: 'Minimize animations and transitions', on: false },
-  { label: 'Screen reader hints', desc: 'Additional aria labels for assistive technology', on: true },
-];
-
 export function SettingsPage() {
+  const { settings, updateSettings } = useAppStore();
+  const { theme, updateTheme } = useTheme();
   const [active, setActive] = useState<string>('theme');
-  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('light');
-  const [language, setLanguage] = useState('en-US');
+
+  const notifKeys = [
+    { key: 'exerciseReminders' as const, label: 'Exercise reminders', desc: 'Notifications for your prescribed exercises' },
+    { key: 'painLoggingReminders' as const, label: 'Daily recovery reminder', desc: 'Get reminded to log your recovery each morning' },
+    { key: 'hydrationReminders' as const, label: 'Hydration reminders', desc: 'Stay hydrated to support tissue repair' },
+    { key: 'weeklyReports' as const, label: 'Weekly progress summary', desc: 'A recap of your recovery every Sunday' },
+    { key: 'appointmentReminders' as const, label: 'Appointment reminders', desc: 'Never miss a physio or surgeon appointment' },
+    { key: 'achievementAlerts' as const, label: 'Achievement unlocked', desc: 'Celebrate when you earn a new badge' },
+    { key: 'aiInsights' as const, label: 'AI coach insights', desc: 'When the coach notices a trend worth sharing' },
+  ];
 
   return (
     <AppLayout>
@@ -82,22 +72,19 @@ export function SettingsPage() {
                   ] as const).map((t) => (
                     <button
                       key={t.key}
-                      onClick={() => setTheme(t.key)}
+                      onClick={() => updateTheme({ mode: t.key })}
                       className={cn(
                         'flex flex-col items-center gap-3 rounded-2xl border-2 p-6 transition-all',
-                        theme === t.key ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-slate-300'
+                        theme.mode === t.key ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-slate-300'
                       )}
                     >
-                      <div className={cn('flex h-12 w-12 items-center justify-center rounded-2xl', theme === t.key ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500')}>
+                      <div className={cn('flex h-12 w-12 items-center justify-center rounded-2xl', theme.mode === t.key ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500')}>
                         <t.icon size={22} />
                       </div>
                       <span className="text-sm font-semibold text-slate-700">{t.label}</span>
-                      {theme === t.key && <Check size={16} className="text-blue-600" />}
+                      {theme.mode === t.key && <Check size={16} className="text-blue-600" />}
                     </button>
                   ))}
-                </div>
-                <div className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">
-                  Dark mode and system theme will be available in a future update. Your preference has been saved.
                 </div>
               </Card>
             )}
@@ -106,8 +93,14 @@ export function SettingsPage() {
               <Card>
                 <h3 className="mb-6 font-bold text-slate-900">Notification Preferences</h3>
                 <div className="space-y-4">
-                  {notificationSettings.map((n) => (
-                    <ToggleRow key={n.label} label={n.label} desc={n.desc} defaultOn={n.on} />
+                  {notifKeys.map((n) => (
+                    <ToggleRow
+                      key={n.key}
+                      label={n.label}
+                      desc={n.desc}
+                      on={settings.notifications[n.key]}
+                      onToggle={() => updateSettings({ notifications: { ...settings.notifications, [n.key]: !settings.notifications[n.key] } })}
+                    />
                   ))}
                 </div>
               </Card>
@@ -117,9 +110,18 @@ export function SettingsPage() {
               <Card>
                 <h3 className="mb-6 font-bold text-slate-900">Privacy</h3>
                 <div className="space-y-4">
-                  {privacySettings.map((n) => (
-                    <ToggleRow key={n.label} label={n.label} desc={n.desc} defaultOn={n.on} />
-                  ))}
+                  <ToggleRow
+                    label="Share data with physiotherapist"
+                    desc="Allow your physio to view your recovery progress"
+                    on={settings.privacy.shareDataWithProvider}
+                    onToggle={() => updateSettings({ privacy: { ...settings.privacy, shareDataWithProvider: !settings.privacy.shareDataWithProvider } })}
+                  />
+                  <ToggleRow
+                    label="Anonymous analytics"
+                    desc="Help improve MediRecover by sharing anonymous usage data"
+                    on={settings.privacy.analyticsOptIn}
+                    onToggle={() => updateSettings({ privacy: { ...settings.privacy, analyticsOptIn: !settings.privacy.analyticsOptIn } })}
+                  />
                 </div>
                 <div className="mt-6 border-t border-slate-100 pt-6">
                   <h4 className="font-bold text-slate-900">Your data</h4>
@@ -136,9 +138,35 @@ export function SettingsPage() {
               <Card>
                 <h3 className="mb-6 font-bold text-slate-900">Accessibility</h3>
                 <div className="space-y-4">
-                  {accessibilitySettings.map((n) => (
-                    <ToggleRow key={n.label} label={n.label} desc={n.desc} defaultOn={n.on} />
-                  ))}
+                  <ToggleRow
+                    label="High contrast mode"
+                    desc="Maximize contrast between text and background"
+                    on={theme.highContrast}
+                    onToggle={() => updateTheme({ highContrast: !theme.highContrast })}
+                  />
+                  <ToggleRow
+                    label="Reduce motion"
+                    desc="Minimize animations and transitions"
+                    on={theme.reducedMotion}
+                    onToggle={() => updateTheme({ reducedMotion: !theme.reducedMotion })}
+                  />
+                  <div className="rounded-2xl border border-slate-100 p-4">
+                    <p className="mb-2 text-sm font-semibold text-slate-700">Font size</p>
+                    <div className="flex gap-2">
+                      {(['small', 'medium', 'large'] as const).map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => updateTheme({ fontSize: s })}
+                          className={cn(
+                            'rounded-xl px-4 py-2 text-sm font-semibold capitalize transition-all',
+                            theme.fontSize === s ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          )}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </Card>
             )}
@@ -146,14 +174,17 @@ export function SettingsPage() {
             {active === 'language' && (
               <Card>
                 <h3 className="mb-6 font-bold text-slate-900">Language</h3>
-                <Select label="Display language" value={language} onChange={(e) => setLanguage(e.target.value)} className="max-w-sm">
-                  <option value="en-US">English (US)</option>
-                  <option value="en-GB">English (UK)</option>
-                  <option value="es-ES">Español</option>
-                  <option value="fr-FR">Français</option>
-                  <option value="de-DE">Deutsch</option>
-                  <option value="pt-BR">Português (Brasil)</option>
-                  <option value="ja-JP">日本語</option>
+                <Select
+                  label="Display language"
+                  value={settings.language}
+                  onChange={(e) => updateSettings({ language: e.target.value as typeof settings.language })}
+                  className="max-w-sm"
+                >
+                  <option value="en">English (US)</option>
+                  <option value="es">Español</option>
+                  <option value="fr">Français</option>
+                  <option value="de">Deutsch</option>
+                  <option value="pt">Português (Brasil)</option>
                 </Select>
                 <p className="mt-4 text-sm text-slate-500">More languages coming soon. Your preference has been saved.</p>
               </Card>
@@ -166,7 +197,7 @@ export function SettingsPage() {
                 <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
                   <Download size={32} className="mx-auto text-slate-400" />
                   <p className="mt-4 text-sm font-semibold text-slate-600">Your data export will be ready as a JSON file</p>
-                  <p className="mt-1 text-xs text-slate-400">Includes 30 days of recovery entries, journal entries, exercise logs, and achievements</p>
+                  <p className="mt-1 text-xs text-slate-400">Includes 90 days of recovery entries, journal entries, exercise logs, and achievements</p>
                 </div>
                 <Button className="mt-6"><Download size={16} /> Generate export</Button>
               </Card>
@@ -178,15 +209,14 @@ export function SettingsPage() {
   );
 }
 
-function ToggleRow({ label, desc, defaultOn }: { label: string; desc: string; defaultOn: boolean }) {
-  const [on, setOn] = useState(defaultOn);
+function ToggleRow({ label, desc, on, onToggle }: { label: string; desc: string; on: boolean; onToggle: () => void }) {
   return (
     <div className="flex items-center justify-between rounded-2xl border border-slate-100 p-4">
       <div>
         <p className="text-sm font-semibold text-slate-700">{label}</p>
         <p className="text-xs text-slate-400">{desc}</p>
       </div>
-      <button onClick={() => setOn(!on)} className={cn('relative h-7 w-12 rounded-full transition-colors', on ? 'bg-blue-600' : 'bg-slate-200')}>
+      <button onClick={onToggle} className={cn('relative h-7 w-12 rounded-full transition-colors', on ? 'bg-blue-600' : 'bg-slate-200')} role="switch" aria-checked={on} aria-label={label}>
         <motion.span layout transition={{ type: 'spring', stiffness: 500, damping: 30 }} className={cn('absolute top-1 h-5 w-5 rounded-full bg-white shadow', on ? 'left-6' : 'left-1')} />
       </button>
     </div>

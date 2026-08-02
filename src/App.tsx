@@ -1,6 +1,7 @@
 import { lazy, Suspense, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { AppStoreProvider } from '@/lib/store';
 import { LandingPage } from '@/pages/LandingPage';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { SignupPage } from '@/pages/auth/SignupPage';
@@ -26,6 +27,8 @@ const ReportPage = lazy(() => import('@/pages/app/ReportPage').then(m => ({ defa
 const NotificationsPage = lazy(() => import('@/pages/app/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
 const RecoveryPlanPage = lazy(() => import('@/pages/app/RecoveryPlanPage').then(m => ({ default: m.RecoveryPlanPage })));
 const AdvancedInsightsPage = lazy(() => import('@/pages/app/AdvancedInsightsPage').then(m => ({ default: m.AdvancedInsightsPage })));
+const GoalsPage = lazy(() => import('@/pages/app/GoalsPage').then(m => ({ default: m.GoalsPage })));
+const JournalPage = lazy(() => import('@/pages/app/JournalPage').then(m => ({ default: m.JournalPage })));
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -60,6 +63,8 @@ const skeletonMap: Record<string, ReactNode> = {
   '/app/report': <ChartSkeleton />,
   '/app/notifications': <ChartSkeleton />,
   '/app/settings': <ChartSkeleton />,
+  '/app/goals': <ChartSkeleton />,
+  '/app/journal': <ChartSkeleton />,
 };
 
 function AppRoutes() {
@@ -90,6 +95,8 @@ function AppRoutes() {
         <Route path="notifications" element={<ProtectedRoute><Suspense fallback={fallback}><NotificationsPage /></Suspense></ProtectedRoute>} />
         <Route path="plan" element={<ProtectedRoute><Suspense fallback={fallback}><RecoveryPlanPage /></Suspense></ProtectedRoute>} />
         <Route path="insights" element={<ProtectedRoute><Suspense fallback={fallback}><AdvancedInsightsPage /></Suspense></ProtectedRoute>} />
+        <Route path="goals" element={<ProtectedRoute><Suspense fallback={fallback}><GoalsPage /></Suspense></ProtectedRoute>} />
+        <Route path="journal" element={<ProtectedRoute><Suspense fallback={fallback}><JournalPage /></Suspense></ProtectedRoute>} />
         <Route path="settings" element={<ProtectedRoute><Suspense fallback={fallback}><SettingsPage /></Suspense></ProtectedRoute>} />
         <Route path="profile" element={<ProtectedRoute><Suspense fallback={fallback}><ProfilePage /></Suspense></ProtectedRoute>} />
       </Route>
@@ -101,9 +108,11 @@ function AppRoutes() {
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
+      <AppStoreProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </AppStoreProvider>
     </AuthProvider>
   );
 }
