@@ -43,6 +43,7 @@ export const mockUser: UserProfile = {
   painLevel: 4,
   mobilityLevel: 6,
   recoveryGoal: 'Return to competitive running within 9 months',
+  myWhy: 'Badminton',
   avatarUrl:
     'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=200',
 };
@@ -387,7 +388,7 @@ export const goalOptions = [
 export const defaultOnboardingData: OnboardingData = {
   name: '', age: '', height: '', weight: '', gender: '',
   injuryCategory: '', injuryType: '', injuryDate: '', surgeryDate: '',
-  side: '', pain: 5, mobility: 50, goal: '',
+  side: '', pain: 5, mobility: 50, goal: '', myWhy: '',
 };
 
 export const recoveryPlan: RecoveryPlanItem[] = [

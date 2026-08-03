@@ -5,7 +5,7 @@ import {
   HeartPulse, Smile, Moon, Footprints, Flame, ArrowRight, Check, Sparkles, Dumbbell,
   Droplets, Pill, TrendingUp, BookHeart, Trophy, LifeBuoy, Calendar, Quote, Brain,
   Sunrise, Sun, Sunset, Moon as MoonIcon, Play, ClipboardList, Activity, Stethoscope,
-  type LucideIcon,
+  Target, Mountain, Mail, type LucideIcon,
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line } from 'recharts';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -18,6 +18,7 @@ import {
   dailyGoals, upcomingExercises, recoveryInsights, weeklySummary, recoveryStory,
 } from '@/lib/mockData';
 import { computeRecoveryScore, recoveryScoreSeries, painSeries, mobilitySeries, getStreak, formatDate } from '@/lib/analytics';
+import { getAiEncouragement, getDailyEncouragement, todaysMissions, myWhyOptions, recoveryDNA } from '@/lib/emotionalData';
 import { cn } from '@/lib/cn';
 
 const planIcons: Record<string, LucideIcon> = { Dumbbell, Droplets, Pill, Footprints };
@@ -51,6 +52,14 @@ export function DashboardPage() {
   const painData = painSeries();
   const mobilityData = mobilitySeries();
 
+  const userMyWhy = user?.profile?.myWhy ?? 'Badminton';
+  const myWhyOption = myWhyOptions.find((o) => o.value === userMyWhy) ?? myWhyOptions[6];
+  const aiEncouragement = getAiEncouragement(recoveryDay);
+  const dailyEncouragement = getDailyEncouragement(recoveryDay);
+  const todaysMission = todaysMissions[recoveryDay % todaysMissions.length];
+  const recoveryReadiness = Math.round(score * 0.4 + 91 * 0.3 + 76 * 0.3);
+  const dnaAvg = Math.round(recoveryDNA.reduce((s, c) => s + c.score, 0) / recoveryDNA.length);
+
   const quickActions = [
     { label: 'Log Recovery', icon: HeartPulse, route: '/app/tracker', color: 'from-rose-400 to-rose-500' },
     { label: 'Exercises', icon: Dumbbell, route: '/app/exercises', color: 'from-blue-500 to-blue-600' },
@@ -73,6 +82,127 @@ export function DashboardPage() {
           You're on a <span className="font-semibold text-emerald-600">{streak}-day streak</span>. Keep showing up.
         </p>
       </motion.div>
+
+      {/* My Comeback Section */}
+      <div className="mb-6 grid gap-4 lg:grid-cols-3">
+        {/* Recovery Day + Score + Readiness */}
+        <Card glass className="flex flex-col items-center justify-center py-6">
+          <p className="text-sm font-semibold text-slate-500">Recovery Score</p>
+          <div className="mt-3"><RecoveryRing score={score} size={150} label="out of 100" /></div>
+          <div className="mt-3 flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-600">
+            <TrendingUp size={14} /> +12 this week
+          </div>
+        </Card>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:col-span-2">
+          {/* Recovery Day */}
+          <Card className="flex flex-col justify-center bg-gradient-to-br from-blue-600 to-emerald-500 text-white">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 backdrop-blur"><Calendar size={22} /></div>
+              <div>
+                <p className="text-3xl font-bold">Day {recoveryDay}</p>
+                <p className="text-sm text-blue-100">of your comeback</p>
+              </div>
+            </div>
+          </Card>
+
+          {/* Recovery Readiness */}
+          <Card className="flex flex-col justify-center bg-gradient-to-br from-violet-500 to-purple-500 text-white">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 backdrop-blur"><Activity size={22} /></div>
+              <div>
+                <p className="text-3xl font-bold">{recoveryReadiness}%</p>
+                <p className="text-sm text-violet-100">recovery readiness</p>
+              </div>
+            </div>
+          </Card>
+
+          {/* Today's Mission */}
+          <Card className="sm:col-span-2">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-emerald-500 text-white shadow-lg"><Target size={18} /></div>
+              <div className="flex-1">
+                <p className="text-xs font-bold uppercase tracking-wide text-blue-500">Today's Mission</p>
+                <p className="mt-1 font-bold text-slate-900">{todaysMission.title}</p>
+                <p className="text-sm text-slate-500">{todaysMission.detail}</p>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {/* AI Encouragement + My Why */}
+      <div className="mb-6 grid gap-4 lg:grid-cols-2">
+        {/* AI Encouragement */}
+        <Card glass className="relative overflow-hidden bg-gradient-to-br from-violet-500 via-purple-500 to-blue-500 text-white">
+          <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+          <div className="relative flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/20 backdrop-blur"><Sparkles size={24} /></div>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-violet-100">AI Encouragement</p>
+              <p className="mt-2 text-base font-medium leading-relaxed">{aiEncouragement}</p>
+              <p className="mt-3 text-xs text-violet-200">Recovery differs for every individual. Consult your physiotherapist for personalized guidance.</p>
+            </div>
+          </div>
+        </Card>
+
+        {/* My Why + Daily Encouragement */}
+        <div className="grid gap-4">
+          <Card glass className="relative overflow-hidden bg-gradient-to-br from-amber-400 to-orange-500 text-white">
+            <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+            <div className="relative flex items-center gap-4">
+              <span className="text-4xl">{myWhyOption.emoji}</span>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-amber-50">My Why</p>
+                <p className="text-xl font-bold">Return to {userMyWhy}</p>
+                <p className="text-sm text-amber-50">This is what every exercise is for.</p>
+              </div>
+            </div>
+          </Card>
+          <Card>
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-lg"><HeartPulse size={18} /></div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-emerald-500">Daily Encouragement</p>
+                <p className="mt-1 text-sm font-medium italic leading-relaxed text-slate-700">"{dailyEncouragement}"</p>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {/* Comeback Journey Links */}
+      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          { label: 'Comeback Timeline', icon: Calendar, route: '/app/timeline', color: 'from-blue-500 to-blue-600' },
+          { label: 'Recovery DNA', icon: Activity, route: '/app/dna', color: 'from-violet-500 to-purple-500' },
+          { label: 'Recovery Mountain', icon: Mountain, route: '/app/mountain', color: 'from-emerald-500 to-teal-600' },
+          { label: 'Future Self Letter', icon: Mail, route: '/app/letter', color: 'from-amber-400 to-orange-500' },
+        ].map((a, i) => (
+          <motion.div key={a.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+            <Link to={a.route}>
+              <Card hover className="flex items-center gap-3 py-4">
+                <div className={cn('flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br text-white shadow-lg', a.color)}>
+                  <a.icon size={18} />
+                </div>
+                <span className="text-sm font-bold text-slate-700">{a.label}</span>
+              </Card>
+            </Link>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Recovery Streak Banner */}
+      <Card glass className="relative mb-6 overflow-hidden bg-gradient-to-br from-amber-50 to-orange-50">
+        <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-amber-200/30 blur-2xl" />
+        <div className="relative flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg"><Flame size={24} /></div>
+          <div>
+            <p className="text-2xl font-bold text-slate-900">{streak}-day streak</p>
+            <p className="text-sm text-slate-500">You completed your rehabilitation exercises for {streak} consecutive days. That kind of consistency is exactly what drives long-term recovery.</p>
+          </div>
+        </div>
+      </Card>
 
       {/* Quick Actions */}
       <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -107,14 +237,17 @@ export function DashboardPage() {
         </div>
       </Card>
 
-      {/* Top section: Recovery Day, Score, Motivation */}
+      {/* Top section: Recovery Score (now in My Comeback above) — show DNA preview */}
       <div className="grid gap-6 lg:grid-cols-3">
         <Card glass className="flex flex-col items-center justify-center py-8">
-          <p className="text-sm font-semibold text-slate-500">Recovery Score</p>
-          <div className="mt-4"><RecoveryRing score={score} size={170} label="out of 100" /></div>
-          <div className="mt-4 flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-600">
-            <TrendingUp size={14} /> +12 this week
+          <p className="text-sm font-semibold text-slate-500">Recovery DNA</p>
+          <div className="mt-4 flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-blue-500 text-white shadow-xl">
+            <div className="text-center">
+              <p className="text-4xl font-bold">{dnaAvg}</p>
+              <p className="text-xs text-violet-100">out of 100</p>
+            </div>
           </div>
+          <Link to="/app/dna" className="mt-4"><Button variant="ghost" size="sm">View DNA <ArrowRight size={14} /></Button></Link>
         </Card>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:col-span-2">

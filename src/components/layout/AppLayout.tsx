@@ -21,6 +21,12 @@ const titles: Record<string, string> = {
   '/app/plan': 'Recovery Plan',
   '/app/insights': 'AI Insights',
   '/app/goals': 'Goals',
+  '/app/timeline': 'Comeback Timeline',
+  '/app/dna': 'Recovery DNA',
+  '/app/mountain': 'Recovery Mountain',
+  '/app/replay': 'Recovery Replay',
+  '/app/victories': 'Small Victories',
+  '/app/letter': 'Future Self',
   '/app/settings': 'Settings',
 };
 

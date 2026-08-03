@@ -101,6 +101,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         mobilityLevel: currentUser.mobilityLevel,
         strengthLevel: 55,
         recoveryGoal: currentUser.recoveryGoal,
+        myWhy: currentUser.myWhy,
       }
     : null;
 

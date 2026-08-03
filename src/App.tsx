@@ -29,6 +29,12 @@ const RecoveryPlanPage = lazy(() => import('@/pages/app/RecoveryPlanPage').then(
 const AdvancedInsightsPage = lazy(() => import('@/pages/app/AdvancedInsightsPage').then(m => ({ default: m.AdvancedInsightsPage })));
 const GoalsPage = lazy(() => import('@/pages/app/GoalsPage').then(m => ({ default: m.GoalsPage })));
 const JournalPage = lazy(() => import('@/pages/app/JournalPage').then(m => ({ default: m.JournalPage })));
+const ComebackTimelinePage = lazy(() => import('@/pages/app/ComebackTimelinePage').then(m => ({ default: m.ComebackTimelinePage })));
+const RecoveryDNAPage = lazy(() => import('@/pages/app/RecoveryDNAPage').then(m => ({ default: m.RecoveryDNAPage })));
+const FutureSelfLetterPage = lazy(() => import('@/pages/app/FutureSelfLetterPage').then(m => ({ default: m.FutureSelfLetterPage })));
+const RecoveryMountainPage = lazy(() => import('@/pages/app/RecoveryMountainPage').then(m => ({ default: m.RecoveryMountainPage })));
+const RecoveryReplayPage = lazy(() => import('@/pages/app/RecoveryReplayPage').then(m => ({ default: m.RecoveryReplayPage })));
+const SmallVictoriesPage = lazy(() => import('@/pages/app/SmallVictoriesPage').then(m => ({ default: m.SmallVictoriesPage })));
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -65,6 +71,12 @@ const skeletonMap: Record<string, ReactNode> = {
   '/app/settings': <ChartSkeleton />,
   '/app/goals': <ChartSkeleton />,
   '/app/journal': <ChartSkeleton />,
+  '/app/timeline': <ChartSkeleton />,
+  '/app/dna': <ChartSkeleton />,
+  '/app/letter': <ChartSkeleton />,
+  '/app/mountain': <ChartSkeleton />,
+  '/app/replay': <ChartSkeleton />,
+  '/app/victories': <ChartSkeleton />,
 };
 
 function AppRoutes() {
@@ -97,6 +109,12 @@ function AppRoutes() {
         <Route path="insights" element={<ProtectedRoute><Suspense fallback={fallback}><AdvancedInsightsPage /></Suspense></ProtectedRoute>} />
         <Route path="goals" element={<ProtectedRoute><Suspense fallback={fallback}><GoalsPage /></Suspense></ProtectedRoute>} />
         <Route path="journal" element={<ProtectedRoute><Suspense fallback={fallback}><JournalPage /></Suspense></ProtectedRoute>} />
+        <Route path="timeline" element={<ProtectedRoute><Suspense fallback={fallback}><ComebackTimelinePage /></Suspense></ProtectedRoute>} />
+        <Route path="dna" element={<ProtectedRoute><Suspense fallback={fallback}><RecoveryDNAPage /></Suspense></ProtectedRoute>} />
+        <Route path="letter" element={<ProtectedRoute><Suspense fallback={fallback}><FutureSelfLetterPage /></Suspense></ProtectedRoute>} />
+        <Route path="mountain" element={<ProtectedRoute><Suspense fallback={fallback}><RecoveryMountainPage /></Suspense></ProtectedRoute>} />
+        <Route path="replay" element={<ProtectedRoute><Suspense fallback={fallback}><RecoveryReplayPage /></Suspense></ProtectedRoute>} />
+        <Route path="victories" element={<ProtectedRoute><Suspense fallback={fallback}><SmallVictoriesPage /></Suspense></ProtectedRoute>} />
         <Route path="settings" element={<ProtectedRoute><Suspense fallback={fallback}><SettingsPage /></Suspense></ProtectedRoute>} />
         <Route path="profile" element={<ProtectedRoute><Suspense fallback={fallback}><ProfilePage /></Suspense></ProtectedRoute>} />
       </Route>

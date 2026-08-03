@@ -57,6 +57,7 @@ export interface RecoveryProfile {
   mobilityLevel: number;
   strengthLevel: number;
   recoveryGoal: string;
+  myWhy?: string;
 }
 
 export interface ThemeSettings {

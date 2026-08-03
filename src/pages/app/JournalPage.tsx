@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   BookHeart, Search, Smile, TrendingUp, Trophy, Mountain, Heart, Sparkles,
-  Calendar,
+  Calendar, Send,
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card } from '@/components/ui/Card';
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { mockJournalEntries } from '@/lib/mockDatabase';
+import { gratitudeEntries } from '@/lib/emotionalData';
 import { cn } from '@/lib/cn';
 
 const moodColors: Record<string, string> = {
@@ -39,6 +40,8 @@ function formatDate(iso: string): string {
 export function JournalPage() {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'wins' | 'challenges' | 'gratitude'>('all');
+  const [gratitudeText, setGratitudeText] = useState('');
+  const [gratitudeList, setGratitudeList] = useState(gratitudeEntries);
 
   const filtered = useMemo(() => {
     let result = [...mockJournalEntries].reverse();
@@ -100,6 +103,54 @@ export function JournalPage() {
           />
         </div>
       </div>
+
+      {/* Daily Gratitude */}
+      <Card glass className="relative mb-6 overflow-hidden bg-gradient-to-br from-amber-50 to-orange-50">
+        <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-amber-200/30 blur-2xl" />
+        <div className="relative">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg">
+              <Heart size={18} />
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-900">Daily Gratitude</h3>
+              <p className="text-xs text-slate-500">What is one thing you're grateful for today?</p>
+            </div>
+          </div>
+          <div className="mt-4 flex gap-2">
+            <input
+              value={gratitudeText}
+              onChange={(e) => setGratitudeText(e.target.value)}
+              placeholder="I'm grateful for..."
+              className="flex-1 rounded-xl border border-slate-200 bg-white/80 px-4 py-2.5 text-sm focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
+            />
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                if (!gratitudeText.trim()) return;
+                setGratitudeList([{ id: `gr_${Date.now()}`, date: new Date().toISOString().slice(0, 10), text: gratitudeText }, ...gratitudeList]);
+                setGratitudeText('');
+              }}
+            >
+              <Send size={14} /> Save
+            </Button>
+          </div>
+          {gratitudeList.length > 0 && (
+            <div className="mt-4 space-y-2">
+              {gratitudeList.slice(0, 4).map((gr, i) => (
+                <motion.div key={gr.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }} className="flex items-start gap-2 rounded-xl bg-white/60 p-3">
+                  <Sparkles size={14} className="mt-0.5 shrink-0 text-amber-400" />
+                  <div>
+                    <p className="text-sm text-slate-700">{gr.text}</p>
+                    <p className="text-xs text-slate-400">{new Date(gr.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Card>
 
       {/* Journal entries */}
       {filtered.length === 0 ? (

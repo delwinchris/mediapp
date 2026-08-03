@@ -13,6 +13,7 @@ export interface UserProfile {
   painLevel: number;
   mobilityLevel: number;
   recoveryGoal: string;
+  myWhy?: string;
   avatarUrl?: string;
 }
 
@@ -198,6 +199,7 @@ export interface OnboardingData {
   pain: number;
   mobility: number;
   goal: string;
+  myWhy: string;
 }
 
 export interface Achievement {
@@ -310,4 +312,67 @@ export interface AdvancedInsight {
   accent: 'blue' | 'emerald' | 'amber' | 'violet' | 'rose' | 'sky';
   metric: string;
   change: number;
+}
+
+export type MyWhyOption =
+  | 'Return to Sport' | 'Return to Work' | 'Play with Family' | 'Daily Life'
+  | 'Fitness' | 'Running' | 'Badminton' | 'Football' | 'Gym' | 'Other';
+
+export interface RecoveryDNACategory {
+  key: string;
+  label: string;
+  score: number;
+  icon: string;
+  color: string;
+  explanation: string;
+  aiInsight: string;
+}
+
+export interface ComebackMilestone {
+  id: string;
+  emoji: string;
+  title: string;
+  date: string;
+  description: string;
+  achieved: boolean;
+  phase: string;
+}
+
+export interface FutureSelfLetter {
+  id: string;
+  daysAgo: number;
+  title: string;
+  body: string;
+  date: string;
+}
+
+export interface MountainStage {
+  id: string;
+  label: string;
+  description: string;
+  icon: string;
+  progress: number;
+  achieved: boolean;
+  elevation: number;
+}
+
+export interface ReplayChapter {
+  id: string;
+  month: string;
+  title: string;
+  description: string;
+  metric: string;
+  value: string;
+  icon: string;
+  color: string;
+}
+
+export interface SmallVictory {
+  id: string;
+  title: string;
+  message: string;
+  date: string;
+  icon: string;
+  color: string;
+  category: string;
 }

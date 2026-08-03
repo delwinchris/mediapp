@@ -11,7 +11,8 @@ import { Button } from '@/components/ui/Button';
 import { Input, Select, Slider } from '@/components/ui/Input';
 import { useAuth } from '@/lib/auth';
 import { injuryCategories, goalOptions, defaultOnboardingData } from '@/lib/mockData';
-import type { OnboardingData } from '@/lib/types';
+import { myWhyOptions } from '@/lib/emotionalData';
+import type { OnboardingData, MyWhyOption } from '@/lib/types';
 import { cn } from '@/lib/cn';
 
 const steps: { id: number; label: string; icon: LucideIcon }[] = [
@@ -19,6 +20,7 @@ const steps: { id: number; label: string; icon: LucideIcon }[] = [
   { id: 1, label: 'Your injury', icon: HeartPulse },
   { id: 2, label: 'How you feel', icon: Brain },
   { id: 3, label: 'Your goal', icon: Target },
+  { id: 4, label: 'Your why', icon: Sparkles },
 ];
 
 const categoryIcons: Record<string, LucideIcon> = {
@@ -57,6 +59,7 @@ export function OnboardingPage() {
         painLevel: form.pain,
         mobilityLevel: form.mobility,
         recoveryGoal: form.goal,
+        myWhy: form.myWhy,
       });
       setFinished(true);
       setTimeout(() => navigate('/app/dashboard'), 2200);
@@ -69,6 +72,7 @@ export function OnboardingPage() {
     if (step === 1) return form.injuryCategory && form.injuryType && form.injuryDate && form.side;
     if (step === 2) return true;
     if (step === 3) return !!form.goal;
+    if (step === 4) return !!form.myWhy;
     return true;
   };
 
@@ -240,6 +244,24 @@ export function OnboardingPage() {
                         {form.goal === g && <Check size={12} className="text-white" />}
                       </div>
                       <span className="text-sm font-semibold text-slate-700">{g}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: My Why */}
+            {step === 4 && (
+              <div className="space-y-5">
+                <h2 className="text-2xl font-bold text-slate-900">What are you recovering for?</h2>
+                <p className="text-slate-500">This is your "why" — the reason behind every exercise, every log, every hard day. We'll remind you of it when motivation dips.</p>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {myWhyOptions.map((opt) => (
+                    <button key={opt.value} onClick={() => set('myWhy', opt.value as string)}
+                      className={cn('flex flex-col items-center gap-2 rounded-2xl border-2 p-4 text-center transition-all duration-200',
+                        form.myWhy === opt.value ? 'border-blue-600 bg-blue-50 shadow-md' : 'border-slate-200 bg-white hover:border-slate-300')}>
+                      <span className="text-3xl">{opt.emoji}</span>
+                      <span className={cn('text-xs font-semibold', form.myWhy === opt.value ? 'text-blue-700' : 'text-slate-600')}>{opt.value}</span>
                     </button>
                   ))}
                 </div>
