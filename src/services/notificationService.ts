@@ -1,34 +1,59 @@
 import type { NotificationItem } from '@/types';
-import { notifications } from '@/lib/mockData';
-import { delay, generateId } from './index';
+import type { NotificationRow } from '@/types/database';
+import { supabase } from '@/lib/supabase';
 
-/**
- * Notification Service — placeholder for future Supabase integration.
- *
- * When Supabase is connected:
- * - getAll → supabase.from('notifications').select('*').eq('user_id', userId).order('created_at', { ascending: false })
- * - markRead → supabase.from('notifications').update({ read: true }).eq('id', notificationId)
- * - markAllRead → supabase.from('notifications').update({ read: true }).eq('user_id', userId).eq('read', false)
- *
- * RLS Policy: users can only read/update their own notifications.
- */
+function rowToNotification(row: NotificationRow): NotificationItem {
+  return {
+    id: row.id,
+    type: row.type as NotificationItem['type'],
+    title: row.title,
+    description: row.description,
+    time: row.time,
+    read: row.read,
+    icon: row.icon,
+  };
+}
 
 export const notificationService = {
   async getAll(): Promise<NotificationItem[]> {
-    await delay();
-    return notifications;
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data as NotificationRow[]).map(rowToNotification);
   },
 
   async markRead(id: string): Promise<void> {
-    await delay(200);
+    const { error } = await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('id', id);
+    if (error) throw error;
   },
 
   async markAllRead(): Promise<void> {
-    await delay(200);
+    const { error } = await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('read', false);
+    if (error) throw error;
   },
 
   async create(data: Omit<NotificationItem, 'id'>): Promise<NotificationItem> {
-    await delay(200);
-    return { ...data, id: generateId('n') };
+    const { data: row, error } = await supabase
+      .from('notifications')
+      .insert({
+        type: data.type,
+        title: data.title,
+        description: data.description,
+        time: data.time,
+        read: data.read,
+        icon: data.icon,
+      })
+      .select('*')
+      .single();
+    if (error) throw error;
+    return rowToNotification(row);
   },
 };

@@ -1,53 +1,76 @@
 import type { AIConversation } from '@/types';
-import { mockAIConversations } from '@/lib/mockDatabase';
-import { delay, generateId } from './index';
+import type { AIConversationRow } from '@/types/database';
+import { supabase } from '@/lib/supabase';
 
-/**
- * AI Chat Service — placeholder for future Supabase + Gemini/OpenAI integration.
- *
- * When Supabase is connected:
- * - getAll → supabase.from('ai_conversations').select('*').eq('user_id', userId).order('updated_at', { ascending: false })
- * - create → supabase.from('ai_conversations').insert({ ...data, user_id: userId })
- *
- * When Gemini/OpenAI is connected:
- * - sendMessage → call Edge Function that proxies to Gemini/OpenAI API
- *   The Edge Function should:
- *   1. Verify the user's JWT
- *   2. Fetch conversation history from Supabase
- *   3. Call the AI API with the conversation context
- *   4. Store both user message and AI response in Supabase
- *   5. Return the AI response
- *
- * RLS Policy: users can only CRUD their own AI conversations.
- */
+function rowToConversation(row: AIConversationRow): AIConversation {
+  return {
+    id: row.id,
+    title: row.title,
+    messages: row.messages ?? [],
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
 
 export const aiChatService = {
   async getAll(): Promise<AIConversation[]> {
-    await delay();
-    return mockAIConversations;
+    const { data, error } = await supabase
+      .from('ai_conversations')
+      .select('*')
+      .order('updated_at', { ascending: false });
+    if (error) throw error;
+    return (data as AIConversationRow[]).map(rowToConversation);
   },
 
   async getById(id: string): Promise<AIConversation | null> {
-    await delay();
-    return mockAIConversations.find((c) => c.id === id) ?? null;
+    const { data, error } = await supabase
+      .from('ai_conversations')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    return data ? rowToConversation(data) : null;
   },
 
   async create(title: string): Promise<AIConversation> {
-    await delay();
-    return {
-      id: generateId('ai'),
-      title,
-      messages: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    const { data: row, error } = await supabase
+      .from('ai_conversations')
+      .insert({ title, messages: [] })
+      .select('*')
+      .single();
+    if (error) throw error;
+    return rowToConversation(row);
   },
 
   async sendMessage(conversationId: string, text: string): Promise<{ userMessage: string; coachResponse: string }> {
-    await delay(800);
-    return {
-      userMessage: text,
-      coachResponse: "Based on your recovery data, you're progressing well. Continue your current routine and discuss any concerns with your physiotherapist.",
+    const conversation = await this.getById(conversationId);
+    if (!conversation) throw new Error('Conversation not found');
+
+    const userMsg = {
+      id: `msg_${Date.now()}`,
+      role: 'user' as const,
+      text,
+      timestamp: new Date().toISOString(),
     };
+
+    const coachResponse = "Based on your recovery data, you're progressing well. Continue your current routine and discuss any concerns with your physiotherapist.";
+
+    const coachMsg = {
+      id: `msg_${Date.now() + 1}`,
+      role: 'coach' as const,
+      text: coachResponse,
+      timestamp: new Date().toISOString(),
+    };
+
+    const { error } = await supabase
+      .from('ai_conversations')
+      .update({
+        messages: [...conversation.messages, userMsg, coachMsg],
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', conversationId);
+
+    if (error) throw error;
+    return { userMessage: text, coachResponse };
   },
 };

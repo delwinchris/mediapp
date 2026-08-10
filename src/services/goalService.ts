@@ -1,35 +1,71 @@
 import type { Goal } from '@/types';
-import { mockGoals } from '@/lib/mockDatabase';
-import { delay, generateId } from './index';
+import type { GoalRow } from '@/types/database';
+import { supabase } from '@/lib/supabase';
 
-/**
- * Goal Service — placeholder for future Supabase integration.
- *
- * When Supabase is connected:
- * - getAll → supabase.from('goals').select('*').eq('user_id', userId).order('priority', { ascending: false })
- * - create → supabase.from('goals').insert({ ...data, user_id: userId })
- *
- * RLS Policy: users can only CRUD their own goals.
- */
+function rowToGoal(row: GoalRow): Goal {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    category: row.category as Goal['category'],
+    priority: row.priority as Goal['priority'],
+    progress: row.progress,
+    targetDate: row.target_date ?? '',
+    status: row.status as Goal['status'],
+    createdAt: row.created_at,
+  };
+}
 
 export const goalService = {
   async getAll(): Promise<Goal[]> {
-    await delay();
-    return mockGoals;
+    const { data, error } = await supabase
+      .from('goals')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data as GoalRow[]).map(rowToGoal);
   },
 
   async create(data: Omit<Goal, 'id'>): Promise<Goal> {
-    await delay();
-    return { ...data, id: generateId('goal') };
+    const { data: row, error } = await supabase
+      .from('goals')
+      .insert({
+        title: data.title,
+        description: data.description,
+        category: data.category,
+        priority: data.priority,
+        progress: data.progress,
+        target_date: data.targetDate || null,
+        status: data.status,
+      })
+      .select('*')
+      .single();
+    if (error) throw error;
+    return rowToGoal(row);
   },
 
   async update(id: string, data: Partial<Goal>): Promise<Goal> {
-    await delay();
-    const existing = mockGoals.find((g) => g.id === id);
-    return { ...(existing ?? mockGoals[0]), ...data, id };
+    const updateData: Record<string, unknown> = {};
+    if (data.title !== undefined) updateData.title = data.title;
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.category !== undefined) updateData.category = data.category;
+    if (data.priority !== undefined) updateData.priority = data.priority;
+    if (data.progress !== undefined) updateData.progress = data.progress;
+    if (data.targetDate !== undefined) updateData.target_date = data.targetDate || null;
+    if (data.status !== undefined) updateData.status = data.status;
+
+    const { data: row, error } = await supabase
+      .from('goals')
+      .update(updateData)
+      .eq('id', id)
+      .select('*')
+      .single();
+    if (error) throw error;
+    return rowToGoal(row);
   },
 
   async delete(id: string): Promise<void> {
-    await delay();
+    const { error } = await supabase.from('goals').delete().eq('id', id);
+    if (error) throw error;
   },
 };

@@ -1,37 +1,51 @@
 import type { JournalEntry } from '@/types';
-import { mockJournalEntries } from '@/lib/mockDatabase';
-import { delay, generateId } from './index';
+import type { JournalEntryRow } from '@/types/database';
+import { supabase } from '@/lib/supabase';
 
-/**
- * Journal Service — placeholder for future Supabase integration.
- *
- * When Supabase is connected:
- * - getAll → supabase.from('journal_entries').select('*').eq('user_id', userId).order('date', { ascending: false })
- * - search → supabase.from('journal_entries').select('*').eq('user_id', userId).ilike('content', `%${query}%`)
- *
- * RLS Policy: users can only CRUD their own journal entries.
- */
+function rowToEntry(row: JournalEntryRow): JournalEntry {
+  return {
+    id: row.id,
+    date: row.date,
+    feeling: row.feeling,
+    win: row.win,
+    challenge: row.challenge,
+    grateful: row.grateful,
+  };
+}
 
 export const journalService = {
   async getAll(): Promise<JournalEntry[]> {
-    await delay();
-    return mockJournalEntries;
+    const { data, error } = await supabase
+      .from('journal_entries')
+      .select('*')
+      .order('date', { ascending: false });
+    if (error) throw error;
+    return (data as JournalEntryRow[]).map(rowToEntry);
   },
 
   async search(query: string): Promise<JournalEntry[]> {
-    await delay();
-    const q = query.toLowerCase();
-    return mockJournalEntries.filter(
-      (j) =>
-        j.feeling.toLowerCase().includes(q) ||
-        j.win.toLowerCase().includes(q) ||
-        j.challenge.toLowerCase().includes(q) ||
-        j.grateful.toLowerCase().includes(q)
-    );
+    const { data, error } = await supabase
+      .from('journal_entries')
+      .select('*')
+      .or(`feeling.ilike.%${query}%,win.ilike.%${query}%,challenge.ilike.%${query}%,grateful.ilike.%${query}%`)
+      .order('date', { ascending: false });
+    if (error) throw error;
+    return (data as JournalEntryRow[]).map(rowToEntry);
   },
 
   async create(data: Omit<JournalEntry, 'id'>): Promise<JournalEntry> {
-    await delay();
-    return { ...data, id: generateId('j') };
+    const { data: row, error } = await supabase
+      .from('journal_entries')
+      .insert({
+        date: data.date,
+        feeling: data.feeling,
+        win: data.win,
+        challenge: data.challenge,
+        grateful: data.grateful,
+      })
+      .select('*')
+      .single();
+    if (error) throw error;
+    return rowToEntry(row);
   },
 };

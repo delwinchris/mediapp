@@ -1,25 +1,45 @@
 import type { MentalEntry } from '@/types';
-import { mockMentalLogs } from '@/lib/mockDatabase';
-import { delay, generateId } from './index';
+import type { MentalLogRow } from '@/types/database';
+import { supabase } from '@/lib/supabase';
 
-/**
- * Mental Log Service — placeholder for future Supabase integration.
- *
- * When Supabase is connected:
- * - getAll → supabase.from('mental_logs').select('*').eq('user_id', userId).order('date', { ascending: false })
- * - create → supabase.from('mental_logs').insert({ ...data, user_id: userId })
- *
- * RLS Policy: users can only CRUD their own mental logs.
- */
+function rowToEntry(row: MentalLogRow): MentalEntry {
+  return {
+    id: row.id,
+    date: row.date,
+    anxiety: row.anxiety,
+    confidence: row.confidence,
+    fearOfReinjury: row.fear_of_reinjury,
+    motivation: row.motivation,
+    stress: row.stress,
+    journal: row.journal,
+  };
+}
 
 export const mentalLogService = {
   async getAll(): Promise<MentalEntry[]> {
-    await delay();
-    return mockMentalLogs;
+    const { data, error } = await supabase
+      .from('mental_logs')
+      .select('*')
+      .order('date', { ascending: false });
+    if (error) throw error;
+    return (data as MentalLogRow[]).map(rowToEntry);
   },
 
   async create(data: Omit<MentalEntry, 'id'>): Promise<MentalEntry> {
-    await delay();
-    return { ...data, id: generateId('m') };
+    const { data: row, error } = await supabase
+      .from('mental_logs')
+      .insert({
+        date: data.date,
+        anxiety: data.anxiety,
+        confidence: data.confidence,
+        fear_of_reinjury: data.fearOfReinjury,
+        motivation: data.motivation,
+        stress: data.stress,
+        journal: data.journal,
+      })
+      .select('*')
+      .single();
+    if (error) throw error;
+    return rowToEntry(row);
   },
 };

@@ -18,9 +18,14 @@ export function ForgotPasswordPage() {
     if (!email) { setError('Email is required'); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError('Enter a valid email'); return; }
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 700));
-    setSent(true);
-    setLoading(false);
+    try {
+      await resetPassword(email);
+      setSent(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not send reset link. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

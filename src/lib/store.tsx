@@ -1,12 +1,10 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import type { UserProfile, RecoveryEntry, MentalEntry, NotificationItem, Goal, AppSettings, RecoveryProfile } from '@/types';
-import {
-  mockUser, notifications as initialNotifications,
-} from '@/lib/mockData';
-import {
-  mockRecoveryLogs, mockMentalLogs, mockGoals,
-} from '@/lib/mockDatabase';
 import { useAuth } from '@/lib/auth';
+import {
+  recoveryLogService, mentalLogService, notificationService, goalService,
+} from '@/services';
+import { mockUser } from '@/lib/mockData';
 
 interface AppState {
   currentUser: UserProfile | null;
@@ -64,19 +62,33 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
 
   useEffect(() => {
-    if (user) {
-      setCurrentUser(user.profile ?? mockUser);
-      setRecoveryLogs(mockRecoveryLogs);
-      setMentalLogs(mockMentalLogs);
-      setNotifications(initialNotifications);
-      setGoals(mockGoals);
-    } else {
+    if (!user) {
       setCurrentUser(null);
       setRecoveryLogs([]);
       setMentalLogs([]);
       setNotifications([]);
       setGoals([]);
+      return;
     }
+
+    setCurrentUser(user.profile ?? { ...mockUser, id: user.id, email: user.email, name: user.name });
+
+    (async () => {
+      try {
+        const [logs, mental, notifs, userGoals] = await Promise.all([
+          recoveryLogService.getAll().catch(() => []),
+          mentalLogService.getAll().catch(() => []),
+          notificationService.getAll().catch(() => []),
+          goalService.getAll().catch(() => []),
+        ]);
+        setRecoveryLogs(logs);
+        setMentalLogs(mental);
+        setNotifications(notifs);
+        setGoals(userGoals);
+      } catch (err) {
+        console.error('Store data fetch failed:', err);
+      }
+    })();
   }, [user]);
 
   useEffect(() => {
@@ -106,31 +118,38 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     : null;
 
   const addRecoveryLog = useCallback((log: RecoveryEntry) => {
-    setRecoveryLogs((prev) => [...prev, log]);
+    setRecoveryLogs((prev) => [log, ...prev]);
+    recoveryLogService.create(log).catch((err) => console.error('Recovery log save failed:', err));
   }, []);
 
   const addMentalLog = useCallback((log: MentalEntry) => {
-    setMentalLogs((prev) => [...prev, log]);
+    setMentalLogs((prev) => [log, ...prev]);
+    mentalLogService.create(log).catch((err) => console.error('Mental log save failed:', err));
   }, []);
 
   const markNotificationRead = useCallback((id: string) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    notificationService.markRead(id).catch((err) => console.error('Notification update failed:', err));
   }, []);
 
   const markAllNotificationsRead = useCallback(() => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    notificationService.markAllRead().catch((err) => console.error('Notifications update failed:', err));
   }, []);
 
   const addGoal = useCallback((goal: Goal) => {
-    setGoals((prev) => [...prev, goal]);
+    setGoals((prev) => [goal, ...prev]);
+    goalService.create(goal).catch((err) => console.error('Goal save failed:', err));
   }, []);
 
   const updateGoal = useCallback((id: string, data: Partial<Goal>) => {
     setGoals((prev) => prev.map((g) => (g.id === id ? { ...g, ...data } : g)));
+    goalService.update(id, data).catch((err) => console.error('Goal update failed:', err));
   }, []);
 
   const deleteGoal = useCallback((id: string) => {
     setGoals((prev) => prev.filter((g) => g.id !== id));
+    goalService.delete(id).catch((err) => console.error('Goal delete failed:', err));
   }, []);
 
   const updateSettings = useCallback((data: Partial<AppSettings>) => {
@@ -138,10 +157,6 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const resetStore = useCallback(() => {
-    setRecoveryLogs(mockRecoveryLogs);
-    setMentalLogs(mockMentalLogs);
-    setNotifications(initialNotifications);
-    setGoals(mockGoals);
     setSettings(defaultSettings);
   }, []);
 

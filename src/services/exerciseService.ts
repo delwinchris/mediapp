@@ -1,37 +1,82 @@
 import type { Exercise, ExerciseSession } from '@/types';
-import { exercises } from '@/lib/mockData';
-import { mockExerciseHistory } from '@/lib/mockDatabase';
-import { delay, generateId } from './index';
+import type { ExerciseRow, ExerciseHistoryRow } from '@/types/database';
+import { supabase } from '@/lib/supabase';
 
-/**
- * Exercise Service — placeholder for future Supabase integration.
- *
- * When Supabase is connected:
- * - getAll → supabase.from('exercises').select('*').eq('user_id', userId)
- * - logSession → supabase.from('exercise_sessions').insert({ ...session, user_id: userId })
- *
- * RLS Policy: exercises are shared (readable by all authenticated users).
- * Exercise sessions are user-owned (CRUD only own sessions).
- */
+function rowToExercise(row: ExerciseRow): Exercise {
+  return {
+    id: row.id,
+    name: row.name,
+    category: row.category,
+    difficulty: row.difficulty as Exercise['difficulty'],
+    sets: row.sets,
+    reps: row.reps,
+    duration: row.duration ?? undefined,
+    instructions: row.instructions,
+    targetArea: row.target_area,
+    image: row.image ?? '',
+    completed: row.completed,
+  };
+}
+
+function rowToSession(row: ExerciseHistoryRow): ExerciseSession {
+  return {
+    id: row.id,
+    exerciseId: row.exercise_id ?? '',
+    exerciseName: row.exercise_name,
+    date: row.date,
+    setsCompleted: row.sets_completed,
+    repsCompleted: row.reps_completed,
+    duration: row.duration,
+    difficulty: row.difficulty as ExerciseSession['difficulty'],
+    completed: row.completed,
+  };
+}
 
 export const exerciseService = {
   async getAll(): Promise<Exercise[]> {
-    await delay();
-    return exercises;
+    const { data, error } = await supabase
+      .from('exercises')
+      .select('*')
+      .order('name', { ascending: true });
+    if (error) throw error;
+    return (data as ExerciseRow[]).map(rowToExercise);
   },
 
   async getById(id: string): Promise<Exercise | null> {
-    await delay();
-    return exercises.find((e) => e.id === id) ?? null;
+    const { data, error } = await supabase
+      .from('exercises')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    return data ? rowToExercise(data) : null;
   },
 
   async getHistory(): Promise<ExerciseSession[]> {
-    await delay();
-    return mockExerciseHistory;
+    const { data, error } = await supabase
+      .from('exercise_history')
+      .select('*')
+      .order('date', { ascending: false });
+    if (error) throw error;
+    return (data as ExerciseHistoryRow[]).map(rowToSession);
   },
 
   async logSession(data: Omit<ExerciseSession, 'id'>): Promise<ExerciseSession> {
-    await delay();
-    return { ...data, id: generateId('es') };
+    const { data: row, error } = await supabase
+      .from('exercise_history')
+      .insert({
+        exercise_id: data.exerciseId || null,
+        exercise_name: data.exerciseName,
+        date: data.date,
+        sets_completed: data.setsCompleted,
+        reps_completed: data.repsCompleted,
+        duration: data.duration,
+        difficulty: data.difficulty,
+        completed: data.completed,
+      })
+      .select('*')
+      .single();
+    if (error) throw error;
+    return rowToSession(row);
   },
 };

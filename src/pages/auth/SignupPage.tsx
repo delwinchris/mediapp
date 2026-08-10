@@ -57,8 +57,8 @@ export function SignupPage() {
     try {
       await signUp(name, email, password);
       navigate('/onboarding');
-    } catch {
-      setServerError('Could not create account. Please try again.');
+    } catch (err) {
+      setServerError(err instanceof Error ? err.message : 'Could not create account. Please try again.');
     } finally {
       setLoading(false);
     }

@@ -29,8 +29,8 @@ function AppleIcon() {
 export function LoginPage() {
   const navigate = useNavigate();
   const { signIn } = useAuth();
-  const [email, setEmail] = useState('alex.morgan@example.com');
-  const [password, setPassword] = useState('password');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(true);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [loading, setLoading] = useState(false);
@@ -54,8 +54,8 @@ export function LoginPage() {
     try {
       const user = await signIn(email, password);
       navigate(user.isNewUser ? '/onboarding' : '/app/dashboard');
-    } catch {
-      setServerError('Invalid email or password. Please try again.');
+    } catch (err) {
+      setServerError(err instanceof Error ? err.message : 'Invalid email or password. Please try again.');
     } finally {
       setLoading(false);
     }
