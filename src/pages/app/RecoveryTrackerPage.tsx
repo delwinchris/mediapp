@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   HeartPulse, Footprints, Moon, Zap, Droplets, StickyNote, Check, Calendar, Dumbbell,
-  Activity, Trophy, Flag, Bike, Medal, TrendingUp, ShieldCheck, AlertTriangle, Pill,
+  Activity, Trophy, Flag, Bike, Medal, ShieldCheck, AlertTriangle, Pill,
   type LucideIcon,
 } from 'lucide-react';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
@@ -12,8 +12,10 @@ import { Button } from '@/components/ui/Button';
 import { Slider, Textarea, Select } from '@/components/ui/Input';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { RecoveryRing } from '@/components/ui/RecoveryRing';
-import { recoveryHistory, swellingLevels, exercises } from '@/lib/mockData';
-import { computeRecoveryScore, formatDate, painSeries, mobilitySeries } from '@/lib/analytics';
+import { swellingLevels, exercises } from '@/lib/mockData';
+import { formatDate } from '@/lib/analytics';
+import { recoveryLogService } from '@/services';
+import type { RecoveryEntry } from '@/lib/types';
 import { cn } from '@/lib/cn';
 
 const milestoneIcons: Record<string, LucideIcon> = {
@@ -32,11 +34,13 @@ const recoveryMilestones = [
 
 const todaysExercises = exercises.slice(0, 4);
 
-function strengthSeries() {
-  return recoveryHistory.map((e) => ({ date: e.date.slice(5), value: e.strength }));
-}
-function scoreSeries() {
-  return recoveryHistory.map((_, i) => ({ date: recoveryHistory[i].date.slice(5), score: computeRecoveryScore(i) }));
+function computeScore(entry: RecoveryEntry): number {
+  const painScore = (10 - entry.pain) * 10;
+  const mobilityScore = entry.mobility * 5;
+  const sleepScore = (entry.sleep / 8) * 25;
+  const energyScore = entry.energy * 2.5;
+  const moodScore = entry.mood * 2.5;
+  return Math.round(Math.min(100, Math.max(0, painScore + mobilityScore + sleepScore + energyScore + moodScore)));
 }
 
 export function RecoveryTrackerPage() {
@@ -48,11 +52,54 @@ export function RecoveryTrackerPage() {
   const [swelling, setSwelling] = useState(3);
   const [medication, setMedication] = useState(true);
   const [notes, setNotes] = useState('');
-  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [completed, setCompleted] = useState<Record<string, boolean>>({});
+  const [history, setHistory] = useState<RecoveryEntry[]>([]);
 
-  const handleSave = () => { setSaved(true); setTimeout(() => setSaved(false), 2500); };
-  const today = recoveryHistory[recoveryHistory.length - 1];
+  useEffect(() => {
+    recoveryLogService.getAll()
+      .then(setHistory)
+      .catch((err) => console.error('Failed to load recovery history:', err));
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSaveError(null);
+    setSaveSuccess(false);
+    try {
+      const date = new Date().toISOString().slice(0, 10);
+      const data = {
+        date,
+        pain,
+        mobility: Math.round(mobility / 10),
+        strength,
+        sleep,
+        energy,
+        swelling,
+        mood: energy,
+        medication,
+        notes,
+      };
+      const existing = history.find((e) => e.date === date);
+      if (existing) {
+        await recoveryLogService.update(existing.id, data);
+      } else {
+        await recoveryLogService.create(data);
+      }
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2500);
+      const fresh = await recoveryLogService.getAll();
+      setHistory(fresh);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save your entry. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const today = history[history.length - 1] ?? { date: new Date().toISOString().slice(0, 10) };
 
   const readiness = Math.round(
     ((10 - pain) * 10 + mobility + strength + (sleep / 12) * 100 + (Object.values(completed).filter(Boolean).length / todaysExercises.length) * 100 + 80) / 6
@@ -64,6 +111,11 @@ export function RecoveryTrackerPage() {
     { label: 'Exercise Completion', value: `${Object.values(completed).filter(Boolean).length}/${todaysExercises.length}`, good: Object.values(completed).filter(Boolean).length >= 3 },
     { label: 'Sleep', value: `${sleep}h`, good: sleep >= 7 },
   ];
+
+  const painData = history.map((e) => ({ date: e.date.slice(5), value: e.pain }));
+  const mobilityData = history.map((e) => ({ date: e.date.slice(5), value: e.mobility }));
+  const strengthData = history.map((e) => ({ date: e.date.slice(5), value: e.strength }));
+  const scoreData = history.map((e) => ({ date: e.date.slice(5), score: computeScore(e) }));
 
   return (
     <AppLayout>
@@ -109,9 +161,17 @@ export function RecoveryTrackerPage() {
             </div>
 
             <div className="mt-6 flex items-center gap-3">
-              <Button onClick={handleSave} disabled={saved}>{saved ? (<><Check size={18} /> Saved!</>) : 'Save entry'}</Button>
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? 'Saving...' : saveSuccess ? (<><Check size={18} /> Saved!</>) : 'Save entry'}
+              </Button>
               <Button variant="outline" onClick={() => { setPain(5); setMobility(50); setStrength(40); setSleep(7); setEnergy(5); setSwelling(3); setNotes(''); }}>Reset</Button>
             </div>
+
+            {saveError && (
+              <p className="mt-3 flex items-center gap-2 text-sm font-medium text-rose-600">
+                <AlertTriangle size={16} /> {saveError}
+              </p>
+            )}
           </Card>
         </div>
 
@@ -141,7 +201,7 @@ export function RecoveryTrackerPage() {
           <Card>
             <h3 className="mb-4 flex items-center gap-2 font-bold text-slate-900"><StickyNote size={18} className="text-slate-400" /> Recent Notes</h3>
             <div className="space-y-3">
-              {recoveryHistory.slice(-3).reverse().map((e) => (
+              {history.slice(-3).reverse().map((e) => (
                 <div key={e.id} className="rounded-2xl border border-slate-100 p-3">
                   <p className="text-xs font-semibold text-slate-400">{formatDate(e.date)}</p>
                   <p className="mt-1 text-sm text-slate-600">{e.notes}</p>
@@ -161,7 +221,7 @@ export function RecoveryTrackerPage() {
             <p className="mb-4 text-xs text-slate-400">Lower is better</p>
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={painSeries()} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                <AreaChart data={painData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                   <defs><linearGradient id="painG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f43f5e" stopOpacity={0.3} /><stop offset="100%" stopColor="#f43f5e" stopOpacity={0.02} /></linearGradient></defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                   <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
@@ -177,11 +237,11 @@ export function RecoveryTrackerPage() {
             <p className="mb-4 text-xs text-slate-400">Higher is better</p>
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={mobilitySeries()} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                <AreaChart data={mobilityData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                   <defs><linearGradient id="mobG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#10b981" stopOpacity={0.3} /><stop offset="100%" stopColor="#10b981" stopOpacity={0.02} /></linearGradient></defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                   <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                  <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                  <YAxis domain={[0, 10]} tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                   <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }} />
                   <Area type="monotone" dataKey="value" stroke="#10b981" strokeWidth={2.5} fill="url(#mobG)" />
                 </AreaChart>
@@ -193,7 +253,7 @@ export function RecoveryTrackerPage() {
             <p className="mb-4 text-xs text-slate-400">Higher is better</p>
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={strengthSeries()} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                <AreaChart data={strengthData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                   <defs><linearGradient id="strG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#2563eb" stopOpacity={0.3} /><stop offset="100%" stopColor="#2563eb" stopOpacity={0.02} /></linearGradient></defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                   <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
@@ -209,7 +269,7 @@ export function RecoveryTrackerPage() {
             <p className="mb-4 text-xs text-slate-400">Overall progress</p>
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={scoreSeries()} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                <LineChart data={scoreData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                   <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                   <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
@@ -340,7 +400,7 @@ export function RecoveryTrackerPage() {
               </tr>
             </thead>
             <tbody>
-              {recoveryHistory.slice().reverse().map((e, i) => (
+              {history.slice().reverse().map((e, i) => (
                 <motion.tr key={e.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }} className="border-b border-slate-50 last:border-0">
                   <td className="py-3 pr-4 font-medium text-slate-700">{formatDate(e.date)}</td>
                   <td className="py-3 pr-4"><span className={cn('rounded-lg px-2 py-0.5 text-xs font-bold', e.pain <= 3 ? 'bg-emerald-50 text-emerald-600' : e.pain <= 6 ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600')}>{e.pain}/10</span></td>

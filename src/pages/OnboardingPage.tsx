@@ -15,6 +15,19 @@ import { myWhyOptions } from '@/lib/emotionalData';
 import type { OnboardingData, MyWhyOption } from '@/lib/types';
 import { cn } from '@/lib/cn';
 
+const ONBOARDING_STEP_KEY = 'mediRecover_onboarding_step';
+
+function loadSavedStep(): number {
+  try {
+    const raw = localStorage.getItem(ONBOARDING_STEP_KEY);
+    if (raw === null) return 0;
+    const parsed = parseInt(raw, 10);
+    return Number.isInteger(parsed) && parsed >= 0 && parsed <= 4 ? parsed : 0;
+  } catch {
+    return 0;
+  }
+}
+
 const steps: { id: number; label: string; icon: LucideIcon }[] = [
   { id: 0, label: 'About you', icon: Activity },
   { id: 1, label: 'Your injury', icon: HeartPulse },
@@ -36,7 +49,7 @@ const sideOptions: { value: 'left' | 'right' | 'both'; label: string }[] = [
 export function OnboardingPage() {
   const navigate = useNavigate();
   const { completeOnboarding, user } = useAuth();
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(loadSavedStep);
   const [form, setForm] = useState<OnboardingData>({
     ...defaultOnboardingData,
     name: user?.name ?? '',
@@ -46,8 +59,11 @@ export function OnboardingPage() {
   const set = <K extends keyof OnboardingData>(k: K, v: OnboardingData[K]) => setForm((f) => ({ ...f, [k]: v }));
 
   const next = () => {
-    if (step < steps.length - 1) setStep(step + 1);
-    else {
+    if (step < steps.length - 1) {
+      const nextStep = step + 1;
+      setStep(nextStep);
+      localStorage.setItem(ONBOARDING_STEP_KEY, String(nextStep));
+    } else {
       completeOnboarding({
         name: form.name,
         age: Number(form.age) || undefined,
@@ -61,11 +77,20 @@ export function OnboardingPage() {
         recoveryGoal: form.goal,
         myWhy: form.myWhy,
       });
+      localStorage.removeItem(ONBOARDING_STEP_KEY);
       setFinished(true);
       setTimeout(() => navigate('/app/dashboard'), 2200);
     }
   };
-  const back = () => (step > 0 ? setStep(step - 1) : navigate('/login'));
+  const back = () => {
+    if (step > 0) {
+      const prevStep = step - 1;
+      setStep(prevStep);
+      localStorage.setItem(ONBOARDING_STEP_KEY, String(prevStep));
+    } else {
+      navigate('/login');
+    }
+  };
 
   const canProceed = () => {
     if (step === 0) return form.name.trim() && form.age && form.height && form.weight;

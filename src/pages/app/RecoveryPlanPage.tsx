@@ -1,14 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-  HeartPulse, Footprints, Activity, Dumbbell, Trophy, Flag, Check, Clock,
+  Footprints, Activity, Dumbbell, Trophy, Flag, Check, Clock,
   type LucideIcon,
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card } from '@/components/ui/Card';
 import { RecoveryRing } from '@/components/ui/RecoveryRing';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { useAuth } from '@/lib/auth';
+import { recoveryLogService } from '@/services';
 import { personalizedPlan } from '@/lib/mockData';
+import type { RecoveryEntry } from '@/lib/types';
 import { cn } from '@/lib/cn';
 
 const milestoneIcons: Record<string, LucideIcon> = { Activity, Footprints, Dumbbell, Trophy };
@@ -18,10 +21,50 @@ const timelineStatusStyles = {
   upcoming: 'bg-slate-100 text-slate-400',
 };
 
+function computeScore(entry: RecoveryEntry): number {
+  const painScore = (10 - entry.pain) * 10;
+  const mobilityScore = entry.mobility * 5;
+  const sleepScore = (entry.sleep / 8) * 25;
+  const energyScore = entry.energy * 2.5;
+  const moodScore = entry.mood * 2.5;
+  return Math.round(Math.min(100, Math.max(0, painScore + mobilityScore + sleepScore + energyScore + moodScore)));
+}
+
+function weeksSince(dateStr: string): number {
+  const start = new Date(dateStr + 'T00:00:00');
+  const now = new Date();
+  const diffMs = now.getTime() - start.getTime();
+  return Math.max(0, Math.floor(diffMs / (7 * 86400000)));
+}
+
 export function RecoveryPlanPage() {
+  const { user } = useAuth();
   const [goals, setGoals] = useState(personalizedPlan.todayGoals);
+  const [history, setHistory] = useState<RecoveryEntry[]>([]);
+  const [loading, setLoading] = useState(true);
   const toggleGoal = (id: string) => setGoals((gs) => gs.map((g) => (g.id === id ? { ...g, done: !g.done } : g)));
   const completed = goals.filter((g) => g.done).length;
+
+  useEffect(() => {
+    let mounted = true;
+    recoveryLogService.getAll()
+      .then((entries) => { if (mounted) setHistory(entries); })
+      .catch((err) => console.error('Failed to load recovery history:', err))
+      .finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
+  }, []);
+
+  const profile = user?.profile;
+  const latestEntry = history[history.length - 1];
+
+  const injury = profile?.injury || personalizedPlan.injury;
+  const injuryDate = profile?.injuryDate || '';
+  const week = injuryDate ? weeksSince(injuryDate) : 0;
+  const stage = injuryDate ? `Week ${week} of recovery` : personalizedPlan.stage;
+
+  const painLevel = latestEntry ? latestEntry.pain : (profile?.painLevel ?? null);
+  const mobilityLevel = latestEntry ? latestEntry.mobility * 10 : (profile?.mobilityLevel ?? null);
+  const readiness = latestEntry ? computeScore(latestEntry) : 0;
 
   return (
     <AppLayout>
@@ -31,25 +74,25 @@ export function RecoveryPlanPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         <Card glass className="bg-gradient-to-br from-blue-600 to-emerald-500 text-white">
           <p className="text-sm text-blue-100">Injury</p>
-          <p className="mt-1 font-bold">{personalizedPlan.injury}</p>
+          <p className="mt-1 font-bold">{injury || '—'}</p>
           <div className="mt-4 rounded-2xl bg-white/10 p-3 backdrop-blur">
             <p className="text-xs text-blue-100">Current Stage</p>
-            <p className="text-sm font-bold">{personalizedPlan.stage}</p>
+            <p className="text-sm font-bold">{stage}</p>
           </div>
         </Card>
         <Card className="flex items-center justify-around">
           <div className="text-center">
             <p className="text-xs font-semibold text-slate-500">Pain</p>
-            <p className="mt-1 text-3xl font-bold text-rose-500">{personalizedPlan.painLevel}<span className="text-lg text-slate-400">/10</span></p>
+            <p className="mt-1 text-3xl font-bold text-rose-500">{loading ? '…' : (painLevel ?? '—')}<span className="text-lg text-slate-400">/10</span></p>
           </div>
           <div className="h-12 w-px bg-slate-100" />
           <div className="text-center">
             <p className="text-xs font-semibold text-slate-500">Mobility</p>
-            <p className="mt-1 text-3xl font-bold text-emerald-500">{personalizedPlan.mobilityLevel}<span className="text-lg text-slate-400">%</span></p>
+            <p className="mt-1 text-3xl font-bold text-emerald-500">{loading ? '…' : (mobilityLevel ?? '—')}<span className="text-lg text-slate-400">%</span></p>
           </div>
         </Card>
         <Card className="flex flex-col items-center justify-center">
-          <RecoveryRing score={78} size={110} label="readiness" />
+          <RecoveryRing score={readiness} size={110} label="readiness" />
         </Card>
       </div>
 

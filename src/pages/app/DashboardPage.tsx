@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   HeartPulse, Smile, Moon, Footprints, Flame, ArrowRight, Check, Sparkles, Dumbbell,
   Droplets, Pill, TrendingUp, BookHeart, Trophy, LifeBuoy, Calendar, Quote, Brain,
-  Sunrise, Sun, Sunset, Moon as MoonIcon, Play, ClipboardList, Activity, Stethoscope,
+  Sunrise, Sun, Sunset, Play, ClipboardList, Activity,
   Target, Mountain, Mail, type LucideIcon,
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line } from 'recharts';
@@ -17,8 +17,10 @@ import {
   recoveryPlan, recentActivity, dailyMotivation, aiCoachMessage,
   dailyGoals, upcomingExercises, recoveryInsights, weeklySummary, recoveryStory,
 } from '@/lib/mockData';
-import { computeRecoveryScore, recoveryScoreSeries, painSeries, mobilitySeries, getStreak, formatDate } from '@/lib/analytics';
+import { formatDate } from '@/lib/analytics';
 import { getAiEncouragement, getDailyEncouragement, todaysMissions, myWhyOptions, recoveryDNA } from '@/lib/emotionalData';
+import { recoveryLogService } from '@/services';
+import type { RecoveryEntry } from '@/lib/types';
 import { cn } from '@/lib/cn';
 
 const planIcons: Record<string, LucideIcon> = { Dumbbell, Droplets, Pill, Footprints };
@@ -33,12 +35,53 @@ const insightAccents: Record<string, string> = {
   sky: 'from-sky-400 to-sky-500',
 };
 
+function computeScore(entry: RecoveryEntry): number {
+  const painScore = (10 - entry.pain) * 10;
+  const mobilityScore = entry.mobility * 5;
+  const sleepScore = (entry.sleep / 8) * 25;
+  const energyScore = entry.energy * 2.5;
+  const moodScore = entry.mood * 2.5;
+  return Math.round(Math.min(100, Math.max(0, painScore + mobilityScore + sleepScore + energyScore + moodScore)));
+}
+
+function computeStreak(entries: RecoveryEntry[]): number {
+  if (entries.length === 0) return 0;
+  const dates = [...new Set(entries.map((e) => e.date))].sort();
+  let streak = 1;
+  for (let i = dates.length - 1; i > 0; i--) {
+    const prev = new Date(dates[i - 1] + 'T00:00:00');
+    const curr = new Date(dates[i] + 'T00:00:00');
+    const diffDays = Math.round((curr.getTime() - prev.getTime()) / 86400000);
+    if (diffDays === 1) streak++;
+    else break;
+  }
+  return streak;
+}
+
 export function DashboardPage() {
   const { user } = useAuth();
-  const score = computeRecoveryScore();
-  const series = recoveryScoreSeries();
-  const streak = getStreak();
   const [goals, setGoals] = useState(dailyGoals);
+  const [history, setHistory] = useState<RecoveryEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    recoveryLogService.getAll()
+      .then((entries) => { if (mounted) setHistory(entries); })
+      .catch((err) => console.error('Failed to load recovery history:', err))
+      .finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
+  }, []);
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayEntry = history.find((e) => e.date === todayStr);
+  const latestEntry = history[history.length - 1];
+
+  const score = todayEntry ? computeScore(todayEntry) : (latestEntry ? computeScore(latestEntry) : 0);
+  const streak = computeStreak(history);
+  const series = history.map((e) => ({ date: e.date.slice(5), score: computeScore(e) }));
+  const painData = history.map((e) => ({ date: e.date.slice(5), value: e.pain }));
+  const mobilityData = history.map((e) => ({ date: e.date.slice(5), value: e.mobility }));
 
   const firstName = user?.name?.split(' ')[0] ?? 'there';
   const recoveryDay = 74;
@@ -48,9 +91,6 @@ export function DashboardPage() {
   const GreetingIcon = greetingIcon;
   const toggleGoal = (id: string) => setGoals((gs) => gs.map((g) => (g.id === id ? { ...g, done: !g.done } : g)));
   const completedGoals = goals.filter((g) => g.done).length;
-
-  const painData = painSeries();
-  const mobilityData = mobilitySeries();
 
   const userMyWhy = user?.profile?.myWhy ?? 'Badminton';
   const myWhyOption = myWhyOptions.find((o) => o.value === userMyWhy) ?? myWhyOptions[6];
@@ -283,10 +323,10 @@ export function DashboardPage() {
 
       {/* Quick Stats */}
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Pain Today" value="3" unit="/10" icon={<HeartPulse size={20} />} accent="rose" trend={{ value: '3 pts lower', up: true }} />
-        <StatCard label="Mobility" value="70" unit="%" icon={<Footprints size={20} />} accent="emerald" trend={{ value: '10% higher', up: true }} />
-        <StatCard label="Sleep" value="7" unit="hrs" icon={<Moon size={20} />} accent="violet" trend={{ value: '0.5h more', up: true }} />
-        <StatCard label="Mood" value="9" unit="/10" icon={<Smile size={20} />} accent="amber" trend={{ value: '1 pt higher', up: true }} />
+        <StatCard label="Pain Today" value={loading ? '…' : (todayEntry ? todayEntry.pain : '—')} unit="/10" icon={<HeartPulse size={20} />} accent="rose" />
+        <StatCard label="Mobility" value={loading ? '…' : (todayEntry ? todayEntry.mobility * 10 : '—')} unit="%" icon={<Footprints size={20} />} accent="emerald" />
+        <StatCard label="Sleep" value={loading ? '…' : (todayEntry ? todayEntry.sleep : '—')} unit="hrs" icon={<Moon size={20} />} accent="violet" />
+        <StatCard label="Mood" value={loading ? '…' : (todayEntry ? todayEntry.mood : '—')} unit="/10" icon={<Smile size={20} />} accent="amber" />
       </div>
 
       {/* Recovery Insights */}
