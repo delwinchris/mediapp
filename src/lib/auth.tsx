@@ -213,8 +213,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { error } = await supabase
       .from('profiles')
-      .update(updateData)
-      .eq('id', session.user.id);
+      .upsert({
+        id: session.user.id,
+        email: session.user.email ?? '',
+        ...updateData,
+      });
 
     if (error) {
       console.error('Onboarding save failed:', error);

@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, Bell, Search, Dumbbell, HeartPulse, BookHeart, Trophy, Sparkles, X } from 'lucide-react';
+import { Menu, Bell, Search, Dumbbell, HeartPulse, BookHeart, Trophy, Sparkles, Droplets, FileText, Stethoscope, Flame, X } from 'lucide-react';
 import { mockUser, searchResults } from '@/lib/mockData';
 import type { SearchResult } from '@/lib/types';
+import { useAppStore } from '@/lib/store';
 import { cn } from '@/lib/cn';
 
 interface TopbarProps {
@@ -27,8 +28,13 @@ const typeLabels: Record<string, string> = {
   exercise: 'Exercise', log: 'Recovery Log', journal: 'Journal', milestone: 'Milestone', ai: 'AI Chat',
 };
 
+const notificationIcons: Record<string, typeof Bell> = {
+  Dumbbell, HeartPulse, Droplets, FileText, Stethoscope, Flame, Trophy, Sparkles,
+};
+
 export function Topbar({ onMenuClick, title }: TopbarProps) {
   const navigate = useNavigate();
+  const { notifications, markNotificationRead } = useAppStore();
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [bellOpen, setBellOpen] = useState(false);
@@ -47,6 +53,7 @@ export function Topbar({ onMenuClick, title }: TopbarProps) {
   const filtered: SearchResult[] = query.trim()
     ? searchResults.filter((r) => r.title.toLowerCase().includes(query.toLowerCase()) || r.description.toLowerCase().includes(query.toLowerCase()))
     : searchResults.slice(0, 6);
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   const goTo = (route: string) => {
     navigate(route);
@@ -133,7 +140,7 @@ export function Topbar({ onMenuClick, title }: TopbarProps) {
             aria-label="Notifications"
           >
             <Bell size={20} />
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-rose-500" />
+            {unreadCount > 0 && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-rose-500" />}
           </button>
           <AnimatePresence>
             {bellOpen && (
@@ -145,15 +152,29 @@ export function Topbar({ onMenuClick, title }: TopbarProps) {
               >
                 <div className="border-b border-slate-100 p-3">
                   <p className="text-sm font-bold text-slate-900">Notifications</p>
-                  <p className="text-xs text-slate-400">3 unread</p>
+                  <p className="text-xs text-slate-400">{unreadCount} unread</p>
                 </div>
                 <div className="max-h-64 overflow-y-auto">
-                  {searchResults.slice(0, 4).map((r) => (
-                    <div key={r.id} className="border-b border-slate-50 px-4 py-3">
-                      <p className="text-sm font-semibold text-slate-700">{r.title}</p>
-                      <p className="text-xs text-slate-400">{r.description}</p>
-                    </div>
-                  ))}
+                  {notifications.length === 0 ? (
+                    <p className="px-4 py-8 text-center text-sm text-slate-400">No notifications</p>
+                  ) : (
+                    notifications.slice(0, 4).map((notification) => {
+                      const Icon = notificationIcons[notification.icon] ?? Bell;
+                      return (
+                        <button
+                          key={notification.id}
+                          onClick={() => { if (!notification.read) void markNotificationRead(notification.id); }}
+                          className="flex w-full items-start gap-3 border-b border-slate-50 px-4 py-3 text-left hover:bg-slate-50"
+                        >
+                          <Icon size={16} className="mt-0.5 shrink-0 text-slate-500" />
+                          <div className="min-w-0 flex-1">
+                            <p className={cn('text-sm text-slate-700', notification.read ? 'font-semibold' : 'font-bold')}>{notification.title}</p>
+                            <p className="text-xs text-slate-400">{notification.description}</p>
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
                 </div>
                 <button
                   onClick={() => { navigate('/app/notifications'); setBellOpen(false); }}

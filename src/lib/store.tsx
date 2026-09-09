@@ -4,7 +4,6 @@ import { useAuth } from '@/lib/auth';
 import {
   recoveryLogService, mentalLogService, notificationService, goalService,
 } from '@/services';
-import { mockUser } from '@/lib/mockData';
 
 interface AppState {
   currentUser: UserProfile | null;
@@ -72,7 +71,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    setCurrentUser(user.profile ?? { ...mockUser, id: user.id, email: user.email, name: user.name });
+    setCurrentUser(user.profile ?? null);
 
     (async () => {
       try {

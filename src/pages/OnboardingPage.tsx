@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowRight, ArrowLeft, Check, Activity, HeartPulse, Brain, Target, PartyPopper,
-  Bone, Footprints, Dumbbell, ShieldCheck, Sparkles,
+  Bone, Footprints, Dumbbell, Sparkles,
   type LucideIcon,
 } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
@@ -12,7 +12,7 @@ import { Input, Select, Slider } from '@/components/ui/Input';
 import { useAuth } from '@/lib/auth';
 import { injuryCategories, goalOptions, defaultOnboardingData } from '@/lib/mockData';
 import { myWhyOptions } from '@/lib/emotionalData';
-import type { OnboardingData, MyWhyOption } from '@/lib/types';
+import type { OnboardingData } from '@/lib/types';
 import { cn } from '@/lib/cn';
 
 const ONBOARDING_STEP_KEY = 'mediRecover_onboarding_step';
@@ -55,31 +55,41 @@ export function OnboardingPage() {
     name: user?.name ?? '',
   });
   const [finished, setFinished] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const set = <K extends keyof OnboardingData>(k: K, v: OnboardingData[K]) => setForm((f) => ({ ...f, [k]: v }));
 
-  const next = () => {
+  const next = async () => {
     if (step < steps.length - 1) {
       const nextStep = step + 1;
       setStep(nextStep);
       localStorage.setItem(ONBOARDING_STEP_KEY, String(nextStep));
     } else {
-      completeOnboarding({
-        name: form.name,
-        age: Number(form.age) || undefined,
-        height: Number(form.height) || undefined,
-        weight: Number(form.weight) || undefined,
-        injury: form.injuryType,
-        injuryDate: form.injuryDate,
-        surgeryDate: form.surgeryDate || undefined,
-        painLevel: form.pain,
-        mobilityLevel: form.mobility,
-        recoveryGoal: form.goal,
-        myWhy: form.myWhy,
-      });
-      localStorage.removeItem(ONBOARDING_STEP_KEY);
-      setFinished(true);
-      setTimeout(() => navigate('/app/dashboard'), 2200);
+      setSaving(true);
+      setSaveError(null);
+      try {
+        await completeOnboarding({
+          name: form.name,
+          age: Number(form.age) || undefined,
+          height: Number(form.height) || undefined,
+          weight: Number(form.weight) || undefined,
+          injury: form.injuryType,
+          injuryDate: form.injuryDate,
+          surgeryDate: form.surgeryDate || undefined,
+          painLevel: form.pain,
+          mobilityLevel: form.mobility,
+          recoveryGoal: form.goal,
+          myWhy: form.myWhy,
+        });
+        localStorage.removeItem(ONBOARDING_STEP_KEY);
+        setFinished(true);
+        setTimeout(() => navigate('/app/dashboard'), 2200);
+      } catch (err) {
+        setSaveError(err instanceof Error ? err.message : 'Could not save your profile. Please try again.');
+      } finally {
+        setSaving(false);
+      }
     }
   };
   const back = () => {
@@ -297,10 +307,11 @@ export function OnboardingPage() {
 
         <div className="mt-10 flex items-center justify-between">
           <Button variant="ghost" onClick={back}><ArrowLeft size={18} /> Back</Button>
-          <Button onClick={next} disabled={!canProceed()}>
-            {step === steps.length - 1 ? 'Finish setup' : 'Continue'} <ArrowRight size={18} />
+          <Button onClick={next} disabled={!canProceed() || saving}>
+            {saving ? 'Saving...' : step === steps.length - 1 ? 'Finish setup' : 'Continue'} {!saving && <ArrowRight size={18} />}
           </Button>
         </div>
+        {saveError && <p className="mt-3 text-right text-sm font-medium text-rose-600">{saveError}</p>}
       </div>
     </div>
   );

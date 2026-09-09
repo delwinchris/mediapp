@@ -47,6 +47,7 @@ export function LoginPage() {
   };
 
   const handleSubmit = async (ev: React.FormEvent) => {
+    if (loading) return;
     ev.preventDefault();
     setServerError('');
     if (!validate()) return;
