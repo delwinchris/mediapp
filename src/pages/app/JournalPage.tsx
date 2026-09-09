@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-  BookHeart, Search, Smile, TrendingUp, Trophy, Mountain, Heart, Sparkles,
+  BookHeart, Search, Trophy, Mountain, Heart, Sparkles,
   Calendar, Send,
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -9,8 +9,8 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { mockJournalEntries } from '@/lib/mockDatabase';
-import { gratitudeEntries } from '@/lib/emotionalData';
+import { journalService } from '@/services';
+import type { JournalEntry } from '@/lib/types';
 import { cn } from '@/lib/cn';
 
 const moodColors: Record<string, string> = {
@@ -39,12 +39,24 @@ function formatDate(iso: string): string {
 
 export function JournalPage() {
   const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<'all' | 'wins' | 'challenges' | 'gratitude'>('all');
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [gratitudeText, setGratitudeText] = useState('');
-  const [gratitudeList, setGratitudeList] = useState(gratitudeEntries);
+  const [savingGratitude, setSavingGratitude] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    journalService.getAll()
+      .then((loaded) => { if (mounted) setEntries(loaded); })
+      .catch(() => { if (mounted) setLoadError('Could not load your journal entries. Please try again.'); })
+      .finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
+  }, []);
 
   const filtered = useMemo(() => {
-    let result = [...mockJournalEntries].reverse();
+    let result = entries;
     if (query.trim()) {
       const q = query.toLowerCase();
       result = result.filter(
@@ -56,18 +68,21 @@ export function JournalPage() {
       );
     }
     return result;
-  }, [query]);
+  }, [entries, query]);
 
-  const totalEntries = mockJournalEntries.length;
+  const totalEntries = entries.length;
+  const recoveryWins = entries.filter((entry) => entry.win.trim().length > 0).length;
   const topMoods = useMemo(() => {
     const counts: Record<string, number> = {};
-    mockJournalEntries.forEach((j) => { counts[j.feeling] = (counts[j.feeling] ?? 0) + 1; });
+    entries.forEach((j) => { counts[j.feeling] = (counts[j.feeling] ?? 0) + 1; });
     return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 3);
-  }, []);
+  }, [entries]);
 
   return (
     <AppLayout>
       <PageHeader title="Journal" subtitle="Reflect on your recovery journey" />
+
+      {loadError && <p className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-600">{loadError}</p>}
 
       {/* Summary */}
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
@@ -80,7 +95,7 @@ export function JournalPage() {
         <Card hover>
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600"><Trophy size={18} /></div>
-            <div><p className="text-2xl font-bold text-slate-900">{totalEntries}</p><p className="text-xs text-slate-500">Recovery wins logged</p></div>
+            <div><p className="text-2xl font-bold text-slate-900">{recoveryWins}</p><p className="text-xs text-slate-500">Recovery wins logged</p></div>
           </div>
         </Card>
         <Card hover>
@@ -117,6 +132,7 @@ export function JournalPage() {
               <p className="text-xs text-slate-500">What is one thing you're grateful for today?</p>
             </div>
           </div>
+          {saveMessage && <p className="mt-3 text-sm text-emerald-600">{saveMessage}</p>}
           <div className="mt-4 flex gap-2">
             <input
               value={gratitudeText}
@@ -127,36 +143,42 @@ export function JournalPage() {
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => {
+              disabled={savingGratitude}
+              onClick={async () => {
                 if (!gratitudeText.trim()) return;
-                setGratitudeList([{ id: `gr_${Date.now()}`, date: new Date().toISOString().slice(0, 10), text: gratitudeText }, ...gratitudeList]);
-                setGratitudeText('');
+                setSavingGratitude(true);
+                setSaveMessage(null);
+                try {
+                  const entry = await journalService.create({
+                    date: new Date().toISOString().slice(0, 10),
+                    feeling: '',
+                    win: '',
+                    challenge: '',
+                    grateful: gratitudeText.trim(),
+                  });
+                  setEntries((current) => [entry, ...current]);
+                  setGratitudeText('');
+                  setSaveMessage('Gratitude saved.');
+                } catch {
+                  setSaveMessage('Could not save gratitude. Please try again.');
+                } finally {
+                  setSavingGratitude(false);
+                }
               }}
             >
-              <Send size={14} /> Save
+              <Send size={14} /> {savingGratitude ? 'Saving...' : 'Save'}
             </Button>
           </div>
-          {gratitudeList.length > 0 && (
-            <div className="mt-4 space-y-2">
-              {gratitudeList.slice(0, 4).map((gr, i) => (
-                <motion.div key={gr.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }} className="flex items-start gap-2 rounded-xl bg-white/60 p-3">
-                  <Sparkles size={14} className="mt-0.5 shrink-0 text-amber-400" />
-                  <div>
-                    <p className="text-sm text-slate-700">{gr.text}</p>
-                    <p className="text-xs text-slate-400">{new Date(gr.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          )}
         </div>
       </Card>
 
       {/* Journal entries */}
-      {filtered.length === 0 ? (
+      {loading ? (
+        <Card className="py-16 text-center text-slate-400">Loading your journal...</Card>
+      ) : filtered.length === 0 ? (
         <EmptyState
           icon={BookHeart}
-          title="No journal entries found"
+          title="No journal entries yet"
           description={query ? `No entries match "${query}". Try a different search term.` : "Start journaling to reflect on your recovery journey. Your entries will appear here."}
         />
       ) : (

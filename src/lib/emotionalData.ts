@@ -154,10 +154,3 @@ export const smallVictories: SmallVictory[] = [
   { id: 'sv8', title: 'First Bike Ride', message: 'You got back on the bike for 20 minutes. That\'s not just physical — that\'s freedom.', date: '2026-07-26', icon: 'Trophy', color: 'from-emerald-500 to-green-600', category: 'Milestone' },
 ];
 
-export const gratitudeEntries: { id: string; date: string; text: string }[] = [
-  { id: 'gr1', date: '2026-08-01', text: 'Grateful for my supportive partner who reminds me to be patient.' },
-  { id: 'gr2', date: '2026-07-31', text: 'Grateful for the good weather that made my walk enjoyable.' },
-  { id: 'gr3', date: '2026-07-30', text: 'Grateful for my physio team who believed in me from day one.' },
-  { id: 'gr4', date: '2026-07-29', text: 'Grateful for my body\'s resilience, even on the hard days.' },
-  { id: 'gr5', date: '2026-07-28', text: 'Grateful for each small win that adds up to something bigger.' },
-];
