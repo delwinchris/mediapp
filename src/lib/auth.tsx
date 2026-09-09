@@ -15,6 +15,7 @@ export interface AuthUser {
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
+  error: string | null;
   signIn: (email: string, password: string) => Promise<AuthUser>;
   signUp: (name: string, email: string, password: string) => Promise<AuthUser>;
   signOut: () => Promise<void>;
@@ -79,6 +80,7 @@ function buildAuthUser(supabaseUser: SupabaseUser, profile?: UserProfile | null,
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -88,10 +90,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           const { profile, onboardingCompleted } = await fetchProfile(session.user.id);
-          if (mounted) setUser(buildAuthUser(session.user, profile, onboardingCompleted));
+          if (mounted) {
+            setUser(buildAuthUser(session.user, profile, onboardingCompleted));
+            setError(null);
+          }
         }
       } catch (err) {
         console.error('Session restore failed:', err);
+        if (mounted) setError('We could not restore your session. Check your connection and try again.');
       } finally {
         if (mounted) setLoading(false);
       }
@@ -102,13 +108,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session?.user) {
           try {
             const { profile, onboardingCompleted } = await fetchProfile(session.user.id);
-            if (mounted) setUser(buildAuthUser(session.user, profile, onboardingCompleted));
+            if (mounted) {
+              setUser(buildAuthUser(session.user, profile, onboardingCompleted));
+              setError(null);
+            }
           } catch (err) {
             console.error('Profile fetch on auth change failed:', err);
-            if (mounted) setUser(buildAuthUser(session.user, null, false));
+            if (mounted) setError('We could not load your profile. Check your connection and try again.');
           }
         } else {
-          if (mounted) setUser(null);
+          if (mounted) {
+            setUser(null);
+            setError(null);
+          }
         }
       })();
     });
@@ -126,6 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { profile, onboardingCompleted } = await fetchProfile(data.user.id);
     const authUser = buildAuthUser(data.user, profile, onboardingCompleted);
     setUser(authUser);
+    setError(null);
     return authUser;
   }, []);
 
@@ -138,6 +151,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw new Error(parseSupabaseError(error));
     if (!data.user) throw new Error('Sign-up failed. Please try again.');
 
+    if (!data.session) {
+      throw new Error('Account created. Please confirm your email before signing in.');
+    }
+
     const { error: profileError } = await supabase.from('profiles').insert({
       id: data.user.id,
       email,
@@ -146,6 +163,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     if (profileError) {
       console.error('Profile creation failed:', profileError);
+      await supabase.auth.signOut();
+      throw new Error('Could not create your profile. Please try again.');
     }
 
     const authUser: AuthUser = {
@@ -155,6 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isNewUser: true,
     };
     setUser(authUser);
+    setError(null);
     return authUser;
   }, []);
 
@@ -162,6 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.signOut();
     if (error) console.error('Sign-out error:', error);
     setUser(null);
+    setError(null);
   }, []);
 
   const resetPassword = useCallback(async (email: string): Promise<void> => {
@@ -249,7 +270,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut, resetPassword, completeOnboarding, updateProfile }}>
+    <AuthContext.Provider value={{ user, loading, error, signIn, signUp, signOut, resetPassword, completeOnboarding, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

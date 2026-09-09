@@ -4,9 +4,11 @@ import { ArrowRight, ArrowLeft, CheckCircle2, AlertCircle, Loader2 } from 'lucid
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { useAuth } from '@/lib/auth';
 
 export function ForgotPasswordPage() {
   const navigate = useNavigate();
+  const { resetPassword } = useAuth();
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [sent, setSent] = useState(false);

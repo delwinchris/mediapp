@@ -10,8 +10,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { notifications as initialNotifications } from '@/lib/mockData';
-import type { NotificationItem } from '@/lib/types';
+import { useAppStore } from '@/lib/store';
 import { cn } from '@/lib/cn';
 
 const iconMap: Record<string, LucideIcon> = {
@@ -30,15 +29,11 @@ const typeColors: Record<string, string> = {
 };
 
 export function NotificationsPage() {
-  const [notifications, setNotifications] = useState<NotificationItem[]>(initialNotifications);
+  const { notifications, markNotificationRead, markAllNotificationsRead, clearNotifications } = useAppStore();
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
 
   const unreadCount = notifications.filter((n) => !n.read).length;
   const filtered = filter === 'unread' ? notifications.filter((n) => !n.read) : notifications;
-
-  const markRead = (id: string) => setNotifications((ns) => ns.map((n) => (n.id === id ? { ...n, read: true } : n)));
-  const markAllRead = () => setNotifications((ns) => ns.map((n) => ({ ...n, read: true })));
-  const clearAll = () => setNotifications([]);
 
   return (
     <AppLayout>
@@ -47,10 +42,10 @@ export function NotificationsPage() {
         subtitle={`${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}`}
         action={
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={markAllRead} disabled={unreadCount === 0}>
+            <Button variant="outline" size="sm" onClick={() => { void markAllNotificationsRead(); }} disabled={unreadCount === 0}>
               <CheckCheck size={16} /> Mark all read
             </Button>
-            <Button variant="ghost" size="sm" onClick={clearAll} disabled={notifications.length === 0}>
+            <Button variant="ghost" size="sm" onClick={() => { void clearNotifications(); }} disabled={notifications.length === 0}>
               <Trash2 size={16} /> Clear
             </Button>
           </div>
@@ -98,7 +93,7 @@ export function NotificationsPage() {
                   <Card
                     hover
                     className={cn('cursor-pointer transition-all', !n.read && 'border-blue-200 bg-blue-50/30')}
-                    onClick={() => markRead(n.id)}
+                    onClick={() => { void markNotificationRead(n.id); }}
                   >
                     <div className="flex items-start gap-4">
                       <div className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br text-white shadow-lg', typeColors[n.type])}>
@@ -116,7 +111,7 @@ export function NotificationsPage() {
                           <span className="text-xs text-slate-400">{n.time}</span>
                           {!n.read && (
                             <button
-                              onClick={(e) => { e.stopPropagation(); markRead(n.id); }}
+                              onClick={(e) => { e.stopPropagation(); void markNotificationRead(n.id); }}
                               className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700"
                             >
                               <Check size={12} /> Mark read

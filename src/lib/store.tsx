@@ -18,13 +18,14 @@ interface AppState {
 }
 
 interface AppStoreContextValue extends AppState {
-  addRecoveryLog: (log: RecoveryEntry) => void;
-  addMentalLog: (log: MentalEntry) => void;
-  markNotificationRead: (id: string) => void;
-  markAllNotificationsRead: () => void;
-  addGoal: (goal: Goal) => void;
-  updateGoal: (id: string, data: Partial<Goal>) => void;
-  deleteGoal: (id: string) => void;
+  addRecoveryLog: (log: RecoveryEntry) => Promise<void>;
+  addMentalLog: (log: MentalEntry) => Promise<void>;
+  markNotificationRead: (id: string) => Promise<void>;
+  markAllNotificationsRead: () => Promise<void>;
+  clearNotifications: () => Promise<void>;
+  addGoal: (goal: Goal) => Promise<void>;
+  updateGoal: (id: string, data: Partial<Goal>) => Promise<void>;
+  deleteGoal: (id: string) => Promise<void>;
   updateSettings: (data: Partial<AppSettings>) => void;
   resetStore: () => void;
 }
@@ -76,10 +77,10 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     (async () => {
       try {
         const [logs, mental, notifs, userGoals] = await Promise.all([
-          recoveryLogService.getAll().catch(() => []),
-          mentalLogService.getAll().catch(() => []),
-          notificationService.getAll().catch(() => []),
-          goalService.getAll().catch(() => []),
+          recoveryLogService.getAll(),
+          mentalLogService.getAll(),
+          notificationService.getAll(),
+          goalService.getAll(),
         ]);
         setRecoveryLogs(logs);
         setMentalLogs(mental);
@@ -117,39 +118,44 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       }
     : null;
 
-  const addRecoveryLog = useCallback((log: RecoveryEntry) => {
-    setRecoveryLogs((prev) => [log, ...prev]);
-    recoveryLogService.create(log).catch((err) => console.error('Recovery log save failed:', err));
+  const addRecoveryLog = useCallback(async (log: RecoveryEntry) => {
+    const saved = await recoveryLogService.create(log);
+    setRecoveryLogs((prev) => [saved, ...prev]);
   }, []);
 
-  const addMentalLog = useCallback((log: MentalEntry) => {
-    setMentalLogs((prev) => [log, ...prev]);
-    mentalLogService.create(log).catch((err) => console.error('Mental log save failed:', err));
+  const addMentalLog = useCallback(async (log: MentalEntry) => {
+    const saved = await mentalLogService.create(log);
+    setMentalLogs((prev) => [saved, ...prev]);
   }, []);
 
-  const markNotificationRead = useCallback((id: string) => {
+  const markNotificationRead = useCallback(async (id: string) => {
+    await notificationService.markRead(id);
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-    notificationService.markRead(id).catch((err) => console.error('Notification update failed:', err));
   }, []);
 
-  const markAllNotificationsRead = useCallback(() => {
+  const markAllNotificationsRead = useCallback(async () => {
+    await notificationService.markAllRead();
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    notificationService.markAllRead().catch((err) => console.error('Notifications update failed:', err));
   }, []);
 
-  const addGoal = useCallback((goal: Goal) => {
-    setGoals((prev) => [goal, ...prev]);
-    goalService.create(goal).catch((err) => console.error('Goal save failed:', err));
+  const clearNotifications = useCallback(async () => {
+    await notificationService.deleteAll();
+    setNotifications([]);
   }, []);
 
-  const updateGoal = useCallback((id: string, data: Partial<Goal>) => {
-    setGoals((prev) => prev.map((g) => (g.id === id ? { ...g, ...data } : g)));
-    goalService.update(id, data).catch((err) => console.error('Goal update failed:', err));
+  const addGoal = useCallback(async (goal: Goal) => {
+    const saved = await goalService.create(goal);
+    setGoals((prev) => [saved, ...prev]);
   }, []);
 
-  const deleteGoal = useCallback((id: string) => {
+  const updateGoal = useCallback(async (id: string, data: Partial<Goal>) => {
+    const saved = await goalService.update(id, data);
+    setGoals((prev) => prev.map((g) => (g.id === id ? saved : g)));
+  }, []);
+
+  const deleteGoal = useCallback(async (id: string) => {
+    await goalService.delete(id);
     setGoals((prev) => prev.filter((g) => g.id !== id));
-    goalService.delete(id).catch((err) => console.error('Goal delete failed:', err));
   }, []);
 
   const updateSettings = useCallback((data: Partial<AppSettings>) => {
@@ -173,6 +179,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     addMentalLog,
     markNotificationRead,
     markAllNotificationsRead,
+    clearNotifications,
     addGoal,
     updateGoal,
     deleteGoal,

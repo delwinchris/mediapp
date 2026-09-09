@@ -12,19 +12,18 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, StatCard } from '@/components/ui/Card';
 import { RecoveryRing } from '@/components/ui/RecoveryRing';
 import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { useAuth } from '@/lib/auth';
+import { useAppStore } from '@/lib/store';
 import {
-  recoveryPlan, recentActivity, dailyMotivation, aiCoachMessage,
-  dailyGoals, upcomingExercises, recoveryInsights, weeklySummary, recoveryStory,
+  aiCoachMessage,
 } from '@/lib/mockData';
 import { formatDate } from '@/lib/analytics';
-import { getAiEncouragement, getDailyEncouragement, todaysMissions, myWhyOptions, recoveryDNA } from '@/lib/emotionalData';
+import { getAiEncouragement, myWhyOptions } from '@/lib/emotionalData';
 import { recoveryLogService } from '@/services';
-import type { RecoveryEntry } from '@/lib/types';
+import type { MentalEntry, RecoveryEntry } from '@/lib/types';
 import { cn } from '@/lib/cn';
 
-const planIcons: Record<string, LucideIcon> = { Dumbbell, Droplets, Pill, Footprints };
-const activityIcons: Record<string, LucideIcon> = { Dumbbell, HeartPulse, BookHeart, Trophy };
 const insightIcons: Record<string, LucideIcon> = { HeartPulse, Smile, Moon, Dumbbell, TrendingUp, Brain };
 const insightAccents: Record<string, string> = {
   blue: 'from-blue-500 to-blue-600',
@@ -58,9 +57,20 @@ function computeStreak(entries: RecoveryEntry[]): number {
   return streak;
 }
 
+function computeRecoveryDay(startDate?: string): number | null {
+  if (!startDate) return null;
+  const start = new Date(`${startDate}T00:00:00`);
+  if (Number.isNaN(start.getTime())) return null;
+  return Math.max(1, Math.floor((Date.now() - start.getTime()) / 86400000) + 1);
+}
+
+function formatActivityDate(date: string): string {
+  return new Date(`${date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 export function DashboardPage() {
   const { user } = useAuth();
-  const [goals, setGoals] = useState(dailyGoals);
+  const { goals, updateGoal, mentalLogs } = useAppStore();
   const [history, setHistory] = useState<RecoveryEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -76,6 +86,7 @@ export function DashboardPage() {
   const todayStr = new Date().toISOString().slice(0, 10);
   const todayEntry = history.find((e) => e.date === todayStr);
   const latestEntry = history[history.length - 1];
+  const latestPersistedEntry = history[0];
 
   const score = todayEntry ? computeScore(todayEntry) : (latestEntry ? computeScore(latestEntry) : 0);
   const streak = computeStreak(history);
@@ -84,21 +95,153 @@ export function DashboardPage() {
   const mobilityData = history.map((e) => ({ date: e.date.slice(5), value: e.mobility }));
 
   const firstName = user?.name?.split(' ')[0] ?? 'there';
-  const recoveryDay = 74;
+  const recoveryStartDate = user?.profile?.surgeryDate ?? user?.profile?.injuryDate;
+  const recoveryDayMetric = computeRecoveryDay(recoveryStartDate);
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   const greetingIcon = hour < 12 ? Sunrise : hour < 18 ? Sun : Sunset;
   const GreetingIcon = greetingIcon;
-  const toggleGoal = (id: string) => setGoals((gs) => gs.map((g) => (g.id === id ? { ...g, done: !g.done } : g)));
-  const completedGoals = goals.filter((g) => g.done).length;
+  const toggleGoal = async (id: string) => {
+    const goal = goals.find((g) => g.id === id);
+    if (!goal) return;
+    const completed = goal.status === 'completed';
+    await updateGoal(id, { status: completed ? 'active' : 'completed', progress: completed ? 0 : 100 });
+  };
+  const completedGoals = goals.filter((g) => g.status === 'completed').length;
+  const activeGoals = goals.filter((g) => g.status === 'active');
+  const dashboardGoals = (activeGoals.length > 0 ? activeGoals : goals).slice(0, 4);
 
-  const userMyWhy = user?.profile?.myWhy ?? 'Badminton';
-  const myWhyOption = myWhyOptions.find((o) => o.value === userMyWhy) ?? myWhyOptions[6];
-  const aiEncouragement = getAiEncouragement(recoveryDay);
-  const dailyEncouragement = getDailyEncouragement(recoveryDay);
-  const todaysMission = todaysMissions[recoveryDay % todaysMissions.length];
-  const recoveryReadiness = Math.round(score * 0.4 + 91 * 0.3 + 76 * 0.3);
-  const dnaAvg = Math.round(recoveryDNA.reduce((s, c) => s + c.score, 0) / recoveryDNA.length);
+  const userMyWhy = user?.profile?.myWhy;
+  const myWhyOption = userMyWhy ? myWhyOptions.find((o) => o.value === userMyWhy) : undefined;
+  const aiEncouragement = getAiEncouragement(recoveryDayMetric ?? 0);
+  const motivationMessage = history.length > 0
+    ? 'Keep taking recovery one check-in at a time.'
+    : 'Every recovery journey starts with one small step.';
+  const dailyEncouragement = 'Keep taking the next step that supports your recovery today.';
+  const recoveryReadiness = latestPersistedEntry ? computeScore(latestPersistedEntry) : null;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const currentWeekStart = new Date(today);
+  currentWeekStart.setDate(today.getDate() - 6);
+  const previousWeekStart = new Date(today);
+  previousWeekStart.setDate(today.getDate() - 13);
+  const previousWeekEnd = new Date(today);
+  previousWeekEnd.setDate(today.getDate() - 7);
+  const getLocalDate = (date: string) => new Date(`${date}T00:00:00`);
+  const currentWeekEntries = history.filter((entry) => {
+    const date = getLocalDate(entry.date);
+    return date >= currentWeekStart && date <= today;
+  });
+  const previousWeekEntries = history.filter((entry) => {
+    const date = getLocalDate(entry.date);
+    return date >= previousWeekStart && date <= previousWeekEnd;
+  });
+  const average = (entries: RecoveryEntry[], getValue: (entry: RecoveryEntry) => number) =>
+    entries.length > 0 ? entries.reduce((sum, entry) => sum + getValue(entry), 0) / entries.length : null;
+  const currentWeekScore = average(currentWeekEntries, computeScore);
+  const previousWeekScore = average(previousWeekEntries, computeScore);
+  const currentWeekPain = average(currentWeekEntries, (entry) => entry.pain);
+  const previousWeekPain = average(previousWeekEntries, (entry) => entry.pain);
+  const currentWeekMobility = average(currentWeekEntries, (entry) => entry.mobility * 10);
+  const previousWeekMobility = average(previousWeekEntries, (entry) => entry.mobility * 10);
+  const currentWeekMentalLogs = mentalLogs.filter((entry) => {
+    const date = getLocalDate(entry.date);
+    return date >= currentWeekStart && date <= today;
+  });
+  const previousWeekMentalLogs = mentalLogs.filter((entry) => {
+    const date = getLocalDate(entry.date);
+    return date >= previousWeekStart && date <= previousWeekEnd;
+  });
+  const averageMental = (entries: MentalEntry[], getValue: (entry: MentalEntry) => number) =>
+    entries.length > 0 ? entries.reduce((sum, entry) => sum + getValue(entry), 0) / entries.length : null;
+  const currentWeekSleep = average(currentWeekEntries, (entry) => entry.sleep);
+  const currentWeekEnergy = average(currentWeekEntries, (entry) => entry.energy);
+  const currentWeekMood = average(currentWeekEntries, (entry) => entry.mood);
+  const currentWeekAnxiety = averageMental(currentWeekMentalLogs, (entry) => entry.anxiety);
+  const previousWeekAnxiety = averageMental(previousWeekMentalLogs, (entry) => entry.anxiety);
+  const currentWeekConfidence = averageMental(currentWeekMentalLogs, (entry) => entry.confidence);
+  const previousWeekConfidence = averageMental(previousWeekMentalLogs, (entry) => entry.confidence);
+  const currentWeekStress = averageMental(currentWeekMentalLogs, (entry) => entry.stress);
+  const previousWeekStress = averageMental(previousWeekMentalLogs, (entry) => entry.stress);
+  const last30Start = new Date(today);
+  last30Start.setDate(today.getDate() - 29);
+  const recentRecoveryDays = new Set(history.filter((entry) => {
+    const date = getLocalDate(entry.date);
+    return date >= last30Start && date <= today;
+  }).map((entry) => entry.date));
+  const recentMentalDays = new Set(mentalLogs.filter((entry) => {
+    const date = getLocalDate(entry.date);
+    return date >= last30Start && date <= today;
+  }).map((entry) => entry.date));
+  const dnaComponents = [
+    recentRecoveryDays.size > 0 ? Math.round((recentRecoveryDays.size / 30) * 100) : null,
+    currentWeekScore,
+    goals.length > 0 ? goals.reduce((sum, goal) => sum + Math.min(100, Math.max(0, goal.progress)), 0) / goals.length : null,
+    recentMentalDays.size > 0 ? Math.round((recentMentalDays.size / 30) * 100) : null,
+  ].filter((value): value is number => value !== null);
+  const dnaAvg = dnaComponents.length > 0
+    ? Math.round(dnaComponents.reduce((sum, value) => sum + value, 0) / dnaComponents.length)
+    : null;
+  const todaysMission = !todayEntry
+    ? { title: 'Log today\'s recovery check-in', detail: 'Record how you feel to keep your recovery data current.' }
+    : activeGoals[0]
+      ? { title: `Continue: ${activeGoals[0].title}`, detail: `${Math.min(100, Math.max(0, activeGoals[0].progress))}% progress on your active goal.` }
+      : { title: 'Keep tracking your recovery', detail: 'Your check-in is recorded. Continue logging your recovery as it changes.' };
+  const recoveryScoreChange = currentWeekScore !== null && previousWeekScore !== null
+    ? Math.round((currentWeekScore - previousWeekScore) * 10) / 10
+    : null;
+  const upcomingMilestones = goals
+    .filter((goal) => goal.status !== 'completed' && goal.targetDate && getLocalDate(goal.targetDate) >= today)
+    .sort((a, b) => a.targetDate.localeCompare(b.targetDate))
+    .slice(0, 3);
+  const activeGoalSummary = activeGoals.length > 0
+    ? `You have ${activeGoals.length} active ${activeGoals.length === 1 ? 'goal' : 'goals'} to work toward.`
+    : 'No active goals. Create one to define your next step.';
+  const formatChange = (current: number | null, previous: number | null, suffix = '') => {
+    if (current === null || previous === null) return '—';
+    const change = Math.round((current - previous) * 10) / 10;
+    return `${change > 0 ? '+' : ''}${change}${suffix}`;
+  };
+  const realInsights = [
+    ...(currentWeekEntries.length >= 2 && previousWeekEntries.length >= 2 && currentWeekPain !== null && previousWeekPain !== null ? [{
+      id: 'pain-trend', title: 'Pain trend', description: `Average pain is ${currentWeekPain.toFixed(1)}/10 this week, compared with ${previousWeekPain.toFixed(1)}/10 in the previous 7 days.`, icon: 'HeartPulse', trend: currentWeekPain <= previousWeekPain ? 'up' as const : 'down' as const, trendValue: formatChange(currentWeekPain, previousWeekPain), accent: 'rose',
+    }] : []),
+    ...(currentWeekEntries.length >= 2 && previousWeekEntries.length >= 2 && currentWeekMobility !== null && previousWeekMobility !== null ? [{
+      id: 'mobility-trend', title: 'Mobility trend', description: `Average mobility is ${currentWeekMobility.toFixed(1)}% this week, compared with ${previousWeekMobility.toFixed(1)}% in the previous 7 days.`, icon: 'Footprints', trend: currentWeekMobility >= previousWeekMobility ? 'up' as const : 'down' as const, trendValue: formatChange(currentWeekMobility, previousWeekMobility, '%'), accent: 'emerald',
+    }] : []),
+    ...(currentWeekEntries.length >= 2 && previousWeekEntries.length >= 2 && currentWeekScore !== null && previousWeekScore !== null ? [{
+      id: 'score-trend', title: 'Recovery score trend', description: `Average recovery score is ${currentWeekScore.toFixed(0)} this week, compared with ${previousWeekScore.toFixed(0)} in the previous 7 days.`, icon: 'TrendingUp', trend: currentWeekScore >= previousWeekScore ? 'up' as const : 'down' as const, trendValue: formatChange(currentWeekScore, previousWeekScore), accent: 'violet',
+    }] : []),
+    ...(currentWeekSleep !== null ? [{
+      id: 'sleep-average', title: 'Sleep average', description: `You logged an average of ${currentWeekSleep.toFixed(1)} hours of sleep across ${currentWeekEntries.length} recovery ${currentWeekEntries.length === 1 ? 'check-in' : 'check-ins'} this week.`, icon: 'Moon', trend: 'neutral' as const, trendValue: `${currentWeekSleep.toFixed(1)}h`, accent: 'amber',
+    }] : []),
+    ...(currentWeekEnergy !== null ? [{
+      id: 'energy-average', title: 'Energy average', description: `Your logged average energy level is ${currentWeekEnergy.toFixed(1)}/10 across this week's recovery check-ins.`, icon: 'TrendingUp', trend: 'neutral' as const, trendValue: `${currentWeekEnergy.toFixed(1)}/10`, accent: 'blue',
+    }] : []),
+    ...(currentWeekMood !== null ? [{
+      id: 'mood-average', title: 'Mood average', description: `Your logged average mood is ${currentWeekMood.toFixed(1)}/10 across this week's recovery check-ins.`, icon: 'Smile', trend: 'neutral' as const, trendValue: `${currentWeekMood.toFixed(1)}/10`, accent: 'sky',
+    }] : []),
+    ...(currentWeekMentalLogs.length >= 2 && previousWeekMentalLogs.length >= 2 && currentWeekAnxiety !== null && previousWeekAnxiety !== null ? [{
+      id: 'anxiety-trend', title: 'Anxiety trend', description: `Average anxiety is ${currentWeekAnxiety.toFixed(1)}/10 this week, compared with ${previousWeekAnxiety.toFixed(1)}/10 in the previous 7 days.`, icon: 'Brain', trend: currentWeekAnxiety <= previousWeekAnxiety ? 'up' as const : 'down' as const, trendValue: formatChange(currentWeekAnxiety, previousWeekAnxiety), accent: 'sky',
+    }] : []),
+    ...(currentWeekMentalLogs.length >= 2 && previousWeekMentalLogs.length >= 2 && currentWeekConfidence !== null && previousWeekConfidence !== null ? [{
+      id: 'confidence-trend', title: 'Confidence trend', description: `Average confidence is ${currentWeekConfidence.toFixed(1)}/10 this week, compared with ${previousWeekConfidence.toFixed(1)}/10 in the previous 7 days.`, icon: 'Smile', trend: currentWeekConfidence >= previousWeekConfidence ? 'up' as const : 'down' as const, trendValue: formatChange(currentWeekConfidence, previousWeekConfidence), accent: 'emerald',
+    }] : []),
+    ...(currentWeekMentalLogs.length >= 2 && previousWeekMentalLogs.length >= 2 && currentWeekStress !== null && previousWeekStress !== null ? [{
+      id: 'stress-trend', title: 'Stress trend', description: `Average stress is ${currentWeekStress.toFixed(1)}/10 this week, compared with ${previousWeekStress.toFixed(1)}/10 in the previous 7 days.`, icon: 'Brain', trend: currentWeekStress <= previousWeekStress ? 'up' as const : 'down' as const, trendValue: formatChange(currentWeekStress, previousWeekStress), accent: 'violet',
+    }] : []),
+  ];
+  const recentActivityItems = history.slice(0, 4).map((entry) => ({
+    id: entry.id,
+    title: `Logged recovery check-in: pain ${entry.pain}/10, mobility ${entry.mobility * 10}%`,
+    time: formatActivityDate(entry.date),
+  }));
+  const weeklyHighlights = currentWeekEntries.length > 0 ? [
+    `${currentWeekEntries.length} recovery ${currentWeekEntries.length === 1 ? 'check-in' : 'check-ins'} logged in the last 7 days`,
+    `Average pain: ${currentWeekPain?.toFixed(1)}/10`,
+    `Average mobility: ${currentWeekMobility?.toFixed(1)}%`,
+  ] : [];
 
   const quickActions = [
     { label: 'Log Recovery', icon: HeartPulse, route: '/app/tracker', color: 'from-rose-400 to-rose-500' },
@@ -106,8 +249,6 @@ export function DashboardPage() {
     { label: 'AI Coach', icon: Sparkles, route: '/app/coach', color: 'from-emerald-500 to-emerald-600' },
     { label: 'Calendar', icon: Calendar, route: '/app/calendar', color: 'from-violet-500 to-violet-600' },
   ];
-
-  const upcomingMilestones = recoveryStory.filter((m) => !m.achieved).slice(0, 3);
 
   return (
     <AppLayout>
@@ -129,9 +270,11 @@ export function DashboardPage() {
         <Card glass className="flex flex-col items-center justify-center py-6">
           <p className="text-sm font-semibold text-slate-500">Recovery Score</p>
           <div className="mt-3"><RecoveryRing score={score} size={150} label="out of 100" /></div>
-          <div className="mt-3 flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-600">
-            <TrendingUp size={14} /> +12 this week
-          </div>
+          {recoveryScoreChange !== null && (
+            <div className={cn('mt-3 flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold', recoveryScoreChange >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500')}>
+              <TrendingUp size={14} className={recoveryScoreChange < 0 ? 'rotate-180' : undefined} /> {recoveryScoreChange > 0 ? '+' : ''}{recoveryScoreChange} this week
+            </div>
+          )}
         </Card>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:col-span-2">
@@ -140,7 +283,7 @@ export function DashboardPage() {
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 backdrop-blur"><Calendar size={22} /></div>
               <div>
-                <p className="text-3xl font-bold">Day {recoveryDay}</p>
+                <p className="text-3xl font-bold">{recoveryDayMetric === null ? '—' : `Day ${recoveryDayMetric}`}</p>
                 <p className="text-sm text-blue-100">of your comeback</p>
               </div>
             </div>
@@ -151,7 +294,7 @@ export function DashboardPage() {
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 backdrop-blur"><Activity size={22} /></div>
               <div>
-                <p className="text-3xl font-bold">{recoveryReadiness}%</p>
+                <p className="text-3xl font-bold">{recoveryReadiness === null ? '—' : `${recoveryReadiness}%`}</p>
                 <p className="text-sm text-violet-100">recovery readiness</p>
               </div>
             </div>
@@ -191,11 +334,11 @@ export function DashboardPage() {
           <Card glass className="relative overflow-hidden bg-gradient-to-br from-amber-400 to-orange-500 text-white">
             <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
             <div className="relative flex items-center gap-4">
-              <span className="text-4xl">{myWhyOption.emoji}</span>
+              <span className="text-4xl">{userMyWhy && myWhyOption ? myWhyOption.emoji : '♥'}</span>
               <div>
                 <p className="text-xs font-bold uppercase tracking-wide text-amber-50">My Why</p>
-                <p className="text-xl font-bold">Return to {userMyWhy}</p>
-                <p className="text-sm text-amber-50">This is what every exercise is for.</p>
+                <p className="text-xl font-bold">{userMyWhy ? `Return to ${userMyWhy}` : 'Your recovery matters'}</p>
+                <p className="text-sm text-amber-50">{userMyWhy ? 'A reason to keep taking the next step.' : 'Keep taking the next step at your own pace.'}</p>
               </div>
             </div>
           </Card>
@@ -268,11 +411,11 @@ export function DashboardPage() {
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 backdrop-blur"><Play size={22} /></div>
             <div>
               <h3 className="font-bold">Continue your recovery</h3>
-              <p className="text-sm text-blue-100">You have 3 exercises remaining today. Keep your streak going!</p>
+              <p className="text-sm text-blue-100">{activeGoalSummary}</p>
             </div>
           </div>
-          <Link to="/app/exercises">
-            <Button className="bg-white text-blue-700 hover:bg-blue-50" size="sm">Continue <ArrowRight size={16} /></Button>
+          <Link to="/app/goals">
+            <Button className="bg-white text-blue-700 hover:bg-blue-50" size="sm">View goals <ArrowRight size={16} /></Button>
           </Link>
         </div>
       </Card>
@@ -281,12 +424,16 @@ export function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         <Card glass className="flex flex-col items-center justify-center py-8">
           <p className="text-sm font-semibold text-slate-500">Recovery DNA</p>
-          <div className="mt-4 flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-blue-500 text-white shadow-xl">
-            <div className="text-center">
-              <p className="text-4xl font-bold">{dnaAvg}</p>
-              <p className="text-xs text-violet-100">out of 100</p>
+          {dnaAvg === null ? (
+            <div className="mt-4 w-full"><EmptyState icon={Activity} title="Not enough data" description="Log recovery, mental check-ins, or goals to build this profile." /></div>
+          ) : (
+            <div className="mt-4 flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-blue-500 text-white shadow-xl">
+              <div className="text-center">
+                <p className="text-4xl font-bold">{dnaAvg}</p>
+                <p className="text-xs text-violet-100">data profile</p>
+              </div>
             </div>
-          </div>
+          )}
           <Link to="/app/dna" className="mt-4"><Button variant="ghost" size="sm">View DNA <ArrowRight size={14} /></Button></Link>
         </Card>
 
@@ -295,7 +442,7 @@ export function DashboardPage() {
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 backdrop-blur"><Calendar size={22} /></div>
               <div>
-                <p className="text-3xl font-bold">Day {recoveryDay}</p>
+                <p className="text-3xl font-bold">{recoveryDayMetric === null ? '—' : `Day ${recoveryDayMetric}`}</p>
                 <p className="text-sm text-blue-100">of your recovery</p>
               </div>
             </div>
@@ -314,7 +461,7 @@ export function DashboardPage() {
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-purple-500 text-white shadow-lg"><Quote size={18} /></div>
               <div>
                 <p className="text-xs font-bold uppercase tracking-wide text-violet-500">Daily Motivation</p>
-                <p className="mt-1 text-sm font-medium italic leading-relaxed text-slate-700">"{dailyMotivation}"</p>
+                <p className="mt-1 text-sm font-medium italic leading-relaxed text-slate-700">"{motivationMessage}"</p>
               </div>
             </div>
           </Card>
@@ -332,52 +479,69 @@ export function DashboardPage() {
       {/* Recovery Insights */}
       <div className="mt-8">
         <h3 className="mb-4 text-lg font-bold text-slate-900">Recovery Insights</h3>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {recoveryInsights.map((ins, i) => {
+        {realInsights.length === 0 ? (
+          <Card><EmptyState icon={TrendingUp} title="Not enough data for insights" description="Log recovery or mental check-ins to see data-derived insights here." /></Card>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {realInsights.map((ins, i) => {
             const Icon = insightIcons[ins.icon] ?? TrendingUp;
-            const good = ins.trend === 'up';
-            return (
-              <motion.div key={ins.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                <Card hover className="h-full">
-                  <div className="flex items-start justify-between">
-                    <div className={cn('flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br text-white shadow-lg', insightAccents[ins.accent])}>
-                      <Icon size={20} />
+              const neutral = ins.trend === 'neutral';
+              const good = ins.trend === 'up';
+              return (
+                <motion.div key={ins.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+                  <Card hover className="h-full">
+                    <div className="flex items-start justify-between">
+                      <div className={cn('flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br text-white shadow-lg', insightAccents[ins.accent])}>
+                        <Icon size={20} />
+                      </div>
+                      <span className={cn('flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold', neutral ? 'bg-slate-50 text-slate-500' : good ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500')}>
+                        {neutral ? '—' : good ? <TrendingUp size={12} /> : <TrendingUp size={12} className="rotate-180" />} {ins.trendValue}
+                      </span>
                     </div>
-                    <span className={cn('flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold', good ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500')}>
-                      {good ? <TrendingUp size={12} /> : <TrendingUp size={12} className="rotate-180" />} {ins.trendValue}
-                    </span>
-                  </div>
-                  <h4 className="mt-4 font-bold text-slate-900">{ins.title}</h4>
-                  <p className="mt-1 text-sm leading-relaxed text-slate-500">{ins.description}</p>
-                </Card>
-              </motion.div>
-            );
-          })}
-        </div>
+                    <h4 className="mt-4 font-bold text-slate-900">{ins.title}</h4>
+                    <p className="mt-1 text-sm leading-relaxed text-slate-500">{ins.description}</p>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* Today's Recovery Plan */}
+      {/* Recovery Goals Preview */}
       <div className="mt-8">
-        <h3 className="mb-4 text-lg font-bold text-slate-900">Today's Recovery Plan</h3>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {recoveryPlan.map((item, i) => {
-            const Icon = planIcons[item.icon] ?? Dumbbell;
+        <h3 className="mb-4 text-lg font-bold text-slate-900">Your Recovery Goals</h3>
+        {dashboardGoals.length === 0 ? (
+          <Card><EmptyState icon={Target} title="No recovery goals yet" description="Create a recovery goal to see it here." /></Card>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {dashboardGoals.map((goal, i) => {
+              const progress = Math.min(100, Math.max(0, goal.progress));
+              const completed = goal.status === 'completed';
             return (
-              <motion.div key={item.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                <Card hover className="h-full">
-                  <div className={cn('flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br text-white shadow-lg', item.color)}>
-                    <Icon size={20} />
-                  </div>
-                  <h4 className="mt-4 font-bold text-slate-900">{item.title}</h4>
-                  <p className="mt-1 text-xs text-slate-500">{item.detail}</p>
-                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
-                    <motion.div className={cn('h-full rounded-full bg-gradient-to-r', item.color)} initial={{ width: 0 }} animate={{ width: `${item.progress}%` }} transition={{ delay: 0.2 + i * 0.1, duration: 0.6 }} />
-                  </div>
-                </Card>
-              </motion.div>
-            );
-          })}
-        </div>
+                <motion.div key={goal.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+                  <Card hover className="h-full">
+                    <div className={cn('flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br text-white shadow-lg', completed ? 'from-emerald-500 to-teal-500' : 'from-blue-500 to-emerald-500')}>
+                      {completed ? <Check size={20} /> : <Target size={20} />}
+                    </div>
+                    <div className="mt-4 flex items-start justify-between gap-2">
+                      <h4 className="font-bold text-slate-900">{goal.title}</h4>
+                      <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold capitalize', completed ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600')}>{goal.status}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">{goal.description}</p>
+                    <div className="mt-3 flex items-center justify-between text-xs font-semibold text-slate-500">
+                      <span>{progress}% progress</span>
+                      {goal.targetDate && <span>Due {formatDate(goal.targetDate)}</span>}
+                    </div>
+                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
+                      <motion.div className={cn('h-full rounded-full bg-gradient-to-r', completed ? 'from-emerald-500 to-teal-500' : 'from-blue-500 to-emerald-500')} initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ delay: 0.2 + i * 0.1, duration: 0.6 }} />
+                    </div>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Progress Preview Charts */}
@@ -461,79 +625,96 @@ export function DashboardPage() {
           <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-600">{completedGoals}/{goals.length} done</span>
         </div>
         <Card>
-          <div className="space-y-2">
-            {goals.map((g) => (
-              <button key={g.id} onClick={() => toggleGoal(g.id)} className="flex w-full items-center gap-3 rounded-2xl border border-slate-100 p-3 text-left transition-colors hover:bg-slate-50">
-                <div className={cn('flex h-6 w-6 items-center justify-center rounded-lg border-2 transition-all', g.done ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-300')}>
-                  {g.done && <Check size={14} />}
-                </div>
-                <span className={cn('text-sm font-medium', g.done ? 'text-slate-400 line-through' : 'text-slate-700')}>{g.title}</span>
-              </button>
-            ))}
-          </div>
+          {goals.length === 0 ? (
+            <EmptyState icon={Target} title="No goals yet" description="Create a recovery goal to see it in your dashboard checklist." />
+          ) : (
+            <div className="space-y-2">
+              {goals.map((g) => {
+                const completed = g.status === 'completed';
+                return (
+                  <button key={g.id} onClick={() => { void toggleGoal(g.id); }} className="flex w-full items-center gap-3 rounded-2xl border border-slate-100 p-3 text-left transition-colors hover:bg-slate-50">
+                    <div className={cn('flex h-6 w-6 items-center justify-center rounded-lg border-2 transition-all', completed ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-300')}>
+                      {completed && <Check size={14} />}
+                    </div>
+                    <span className={cn('text-sm font-medium', completed ? 'text-slate-400 line-through' : 'text-slate-700')}>{g.title}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </Card>
       </div>
 
       {/* Weekly Progress Summary */}
       <div className="mt-8">
         <h3 className="mb-4 text-lg font-bold text-slate-900">Weekly Progress Summary</h3>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Card hover className="bg-gradient-to-br from-emerald-50 to-green-50">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 text-white"><TrendingUp size={18} /></div>
-              <div><p className="text-2xl font-bold text-slate-900">+{weeklySummary.scoreChange}</p><p className="text-xs text-slate-500">Recovery score</p></div>
+        {currentWeekEntries.length === 0 ? (
+          <Card><EmptyState icon={Calendar} title="No recovery data this week" description="Log a recovery check-in to build your weekly summary." /></Card>
+        ) : (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <Card hover className="bg-gradient-to-br from-emerald-50 to-green-50">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 text-white"><TrendingUp size={18} /></div>
+                  <div><p className="text-2xl font-bold text-slate-900">{currentWeekScore?.toFixed(0)}</p><p className="text-xs text-slate-500">Average recovery score</p><p className="text-xs text-slate-400">vs prior 7 days: {formatChange(currentWeekScore, previousWeekScore)}</p></div>
+                </div>
+              </Card>
+              <Card hover className="bg-gradient-to-br from-rose-50 to-pink-50">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500 text-white"><HeartPulse size={18} /></div>
+                  <div><p className="text-2xl font-bold text-slate-900">{currentWeekPain?.toFixed(1)}/10</p><p className="text-xs text-slate-500">Average pain</p><p className="text-xs text-slate-400">vs prior 7 days: {formatChange(currentWeekPain, previousWeekPain)}</p></div>
+                </div>
+              </Card>
+              <Card hover className="bg-gradient-to-br from-blue-50 to-sky-50">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500 text-white"><Footprints size={18} /></div>
+                  <div><p className="text-2xl font-bold text-slate-900">{currentWeekMobility?.toFixed(1)}%</p><p className="text-xs text-slate-500">Average mobility</p><p className="text-xs text-slate-400">vs prior 7 days: {formatChange(currentWeekMobility, previousWeekMobility, '%')}</p></div>
+                </div>
+              </Card>
+              <Card hover className="bg-gradient-to-br from-amber-50 to-orange-50">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500 text-white"><Calendar size={18} /></div>
+                  <div><p className="text-2xl font-bold text-slate-900">{currentWeekEntries.length}/7</p><p className="text-xs text-slate-500">Logged days</p></div>
+                </div>
+              </Card>
             </div>
-          </Card>
-          <Card hover className="bg-gradient-to-br from-rose-50 to-pink-50">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500 text-white"><HeartPulse size={18} /></div>
-              <div><p className="text-2xl font-bold text-slate-900">{weeklySummary.painChange}</p><p className="text-xs text-slate-500">Pain change</p></div>
-            </div>
-          </Card>
-          <Card hover className="bg-gradient-to-br from-blue-50 to-sky-50">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500 text-white"><Dumbbell size={18} /></div>
-              <div><p className="text-2xl font-bold text-slate-900">{weeklySummary.exerciseCompletion}%</p><p className="text-xs text-slate-500">Exercise completion</p></div>
-            </div>
-          </Card>
-          <Card hover className="bg-gradient-to-br from-amber-50 to-orange-50">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500 text-white"><Flame size={18} /></div>
-              <div><p className="text-2xl font-bold text-slate-900">{weeklySummary.streak}</p><p className="text-xs text-slate-500">Day streak</p></div>
-            </div>
-          </Card>
-        </div>
-        <Card className="mt-4">
-          <h4 className="mb-3 font-bold text-slate-900">This week's highlights</h4>
-          <ul className="space-y-2">
-            {weeklySummary.highlights.map((h, i) => (
-              <motion.li key={i} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} className="flex items-start gap-2 text-sm text-slate-600">
-                <Check size={16} className="mt-0.5 shrink-0 text-emerald-500" /> {h}
-              </motion.li>
-            ))}
-          </ul>
-        </Card>
+            <Card className="mt-4">
+              <h4 className="mb-3 font-bold text-slate-900">This week's highlights</h4>
+              <ul className="space-y-2">
+                {weeklyHighlights.map((highlight, i) => (
+                  <motion.li key={highlight} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} className="flex items-start gap-2 text-sm text-slate-600">
+                    <Check size={16} className="mt-0.5 shrink-0 text-emerald-500" /> {highlight}
+                  </motion.li>
+                ))}
+              </ul>
+            </Card>
+          </>
+        )}
       </div>
 
       {/* Upcoming Milestones */}
       <div className="mt-8">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-bold text-slate-900">Upcoming Milestones</h3>
-          <Link to="/app/plan"><Button variant="ghost" size="sm">View plan <ArrowRight size={16} /></Button></Link>
+          <Link to="/app/goals"><Button variant="ghost" size="sm">View goals <ArrowRight size={16} /></Button></Link>
         </div>
-        <div className="grid gap-4 sm:grid-cols-3">
-          {upcomingMilestones.map((m, i) => (
-            <motion.div key={m.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-              <Card hover className="h-full">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-emerald-500 text-white shadow-lg"><Trophy size={18} /></div>
-                <span className="mt-3 inline-block rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-600">{m.phase}</span>
-                <h4 className="mt-2 font-bold text-slate-900">{m.title}</h4>
-                <p className="mt-1 text-xs leading-relaxed text-slate-500">{m.description}</p>
-                <p className="mt-2 text-xs font-semibold text-slate-400">{formatDate(m.date)}</p>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
+        {upcomingMilestones.length === 0 ? (
+          <Card><EmptyState icon={Trophy} title="No upcoming goal deadlines" description="Goals with target dates will appear here." /></Card>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-3">
+            {upcomingMilestones.map((goal, i) => (
+              <motion.div key={goal.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+                <Card hover className="h-full">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-emerald-500 text-white shadow-lg"><Target size={18} /></div>
+                  <span className="mt-3 inline-block rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-600">Goal deadline</span>
+                  <h4 className="mt-2 font-bold text-slate-900">{goal.title}</h4>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-500">{goal.description}</p>
+                  <p className="mt-2 text-xs font-semibold text-slate-400">Target: {formatDate(goal.targetDate)}</p>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* AI Coach Preview */}
@@ -557,19 +738,20 @@ export function DashboardPage() {
         <Card className="lg:col-span-2">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="font-bold text-slate-900">Recent Activity</h3>
-            <span className="text-xs text-slate-400">Last 5 actions</span>
+            <span className="text-xs text-slate-400">Latest check-ins</span>
           </div>
-          <div className="space-y-2">
-            {recentActivity.slice(0, 4).map((a) => {
-              const Icon = activityIcons[a.icon] ?? Check;
-              return (
-                <div key={a.id} className="flex items-center gap-3 rounded-2xl border border-slate-100 p-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600"><Icon size={14} /></div>
-                  <div className="flex-1"><p className="text-sm font-semibold text-slate-700">{a.title}</p><p className="text-xs text-slate-400">{a.time}</p></div>
+          {recentActivityItems.length === 0 ? (
+            <EmptyState icon={HeartPulse} title="No recent activity" description="Your recovery check-ins will appear here once you log them." />
+          ) : (
+            <div className="space-y-2">
+              {recentActivityItems.map((activity) => (
+                <div key={activity.id} className="flex items-center gap-3 rounded-2xl border border-slate-100 p-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600"><HeartPulse size={14} /></div>
+                  <div className="flex-1"><p className="text-sm font-semibold text-slate-700">{activity.title}</p><p className="text-xs text-slate-400">{activity.time}</p></div>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
 
@@ -579,24 +761,7 @@ export function DashboardPage() {
           <h3 className="text-lg font-bold text-slate-900">Upcoming Exercises</h3>
           <Link to="/app/exercises"><Button variant="ghost" size="sm">View library <ArrowRight size={16} /></Button></Link>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {upcomingExercises.map((ex, i) => (
-            <motion.div key={ex.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-              <Card hover className="overflow-hidden p-0">
-                <div className="relative h-32 overflow-hidden">
-                  <img src={ex.image} alt={ex.name} className="h-full w-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent" />
-                  <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-xs font-bold text-slate-700 backdrop-blur">{ex.difficulty}</span>
-                </div>
-                <div className="p-4">
-                  <div className="flex items-center gap-2 text-xs text-slate-400"><Dumbbell size={14} /> {ex.category}</div>
-                  <h4 className="mt-1.5 font-bold text-slate-900">{ex.name}</h4>
-                  <p className="mt-1 text-sm text-slate-500">{ex.sets} sets × {ex.reps} reps · {ex.duration}</p>
-                </div>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
+        <Card><EmptyState icon={Dumbbell} title="No upcoming exercises" description="Exercises will appear here when a recovery plan is available." /></Card>
       </div>
     </AppLayout>
   );

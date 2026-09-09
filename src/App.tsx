@@ -8,7 +8,7 @@ import { SignupPage } from '@/pages/auth/SignupPage';
 import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
 import { OnboardingPage } from '@/pages/OnboardingPage';
 import { DashboardSkeleton, ChartSkeleton, ChatSkeleton, ProfileSkeleton, ExerciseSkeleton, RecoverySkeleton } from '@/components/ui/Skeleton';
-import { NotFoundPage } from '@/pages/ErrorPages';
+import { NetworkErrorPage, NotFoundPage } from '@/pages/ErrorPages';
 
 const DashboardPage = lazy(() => import('@/pages/app/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const RecoveryTrackerPage = lazy(() => import('@/pages/app/RecoveryTrackerPage').then(m => ({ default: m.RecoveryTrackerPage })));
@@ -37,19 +37,30 @@ const RecoveryReplayPage = lazy(() => import('@/pages/app/RecoveryReplayPage').t
 const SmallVictoriesPage = lazy(() => import('@/pages/app/SmallVictoriesPage').then(m => ({ default: m.SmallVictoriesPage })));
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, error } = useAuth();
   const location = useLocation();
   if (loading) return null;
+  if (error) return <NetworkErrorPage />;
   if (!user) return <Navigate to="/login" replace state={{ from: location }} />;
   if (user.isNewUser) return <Navigate to="/onboarding" replace />;
   return <>{children}</>;
 }
 
 function PublicOnlyRoute({ children }: { children: ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, error } = useAuth();
   if (loading) return null;
+  if (error) return <NetworkErrorPage />;
   if (user && !user.isNewUser) return <Navigate to="/app/dashboard" replace />;
   return <>{children}</>;
+}
+
+function OnboardingRoute() {
+  const { user, loading, error } = useAuth();
+  if (loading) return null;
+  if (error) return <NetworkErrorPage />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (!user.isNewUser) return <Navigate to="/app/dashboard" replace />;
+  return <OnboardingPage />;
 }
 
 const skeletonMap: Record<string, ReactNode> = {
@@ -89,7 +100,7 @@ function AppRoutes() {
       <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
       <Route path="/signup" element={<PublicOnlyRoute><SignupPage /></PublicOnlyRoute>} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/onboarding" element={<OnboardingPage />} />
+      <Route path="/onboarding" element={<OnboardingRoute />} />
       <Route path="/app">
         <Route index element={<Navigate to="/app/dashboard" replace />} />
         <Route path="dashboard" element={<ProtectedRoute><Suspense fallback={fallback}><DashboardPage /></Suspense></ProtectedRoute>} />

@@ -40,6 +40,14 @@ export const notificationService = {
     if (error) throw error;
   },
 
+  async deleteAll(): Promise<void> {
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .neq('id', '');
+    if (error) throw error;
+  },
+
   async create(data: Omit<NotificationItem, 'id'>): Promise<NotificationItem> {
     const { data: row, error } = await supabase
       .from('notifications')
