@@ -1,27 +1,14 @@
-import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Footprints, Activity, Dumbbell, Trophy, Flag, Check, Clock,
-  type LucideIcon,
+  Calendar, Clock3, HeartPulse, ShieldAlert,
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card } from '@/components/ui/Card';
 import { RecoveryRing } from '@/components/ui/RecoveryRing';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { useAuth } from '@/lib/auth';
-import { recoveryLogService } from '@/services';
-import { personalizedPlan } from '@/lib/mockData';
-import type { RecoveryEntry } from '@/lib/types';
-import { cn } from '@/lib/cn';
+import { useAppStore } from '@/lib/store';
 
-const milestoneIcons: Record<string, LucideIcon> = { Activity, Footprints, Dumbbell, Trophy };
-const timelineStatusStyles = {
-  completed: 'bg-gradient-to-br from-blue-600 to-emerald-500 text-white',
-  current: 'bg-gradient-to-br from-amber-400 to-orange-500 text-white ring-4 ring-amber-200',
-  upcoming: 'bg-slate-100 text-slate-400',
-};
-
-function computeScore(entry: RecoveryEntry): number {
+function computeScore(entry: { pain: number; mobility: number; sleep: number; energy: number; mood: number }): number {
   const painScore = (10 - entry.pain) * 10;
   const mobilityScore = entry.mobility * 5;
   const sleepScore = (entry.sleep / 8) * 25;
@@ -30,167 +17,131 @@ function computeScore(entry: RecoveryEntry): number {
   return Math.round(Math.min(100, Math.max(0, painScore + mobilityScore + sleepScore + energyScore + moodScore)));
 }
 
-function weeksSince(dateStr: string): number {
+function recoveryDuration(dateStr: string): string | null {
   const start = new Date(dateStr + 'T00:00:00');
-  const now = new Date();
-  const diffMs = now.getTime() - start.getTime();
-  return Math.max(0, Math.floor(diffMs / (7 * 86400000)));
+  if (Number.isNaN(start.getTime())) return null;
+  const days = Math.max(0, Math.floor((Date.now() - start.getTime()) / 86400000));
+  return `${days} days (week ${Math.floor(days / 7)})`;
+}
+
+function formatDate(dateStr: string): string {
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+  });
 }
 
 export function RecoveryPlanPage() {
-  const { user } = useAuth();
-  const [goals, setGoals] = useState(personalizedPlan.todayGoals);
-  const [history, setHistory] = useState<RecoveryEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const toggleGoal = (id: string) => setGoals((gs) => gs.map((g) => (g.id === id ? { ...g, done: !g.done } : g)));
-  const completed = goals.filter((g) => g.done).length;
-
-  useEffect(() => {
-    let mounted = true;
-    recoveryLogService.getAll()
-      .then((entries) => { if (mounted) setHistory(entries); })
-      .catch((err) => console.error('Failed to load recovery history:', err))
-      .finally(() => { if (mounted) setLoading(false); });
-    return () => { mounted = false; };
-  }, []);
-
-  const profile = user?.profile;
-  const latestEntry = history[history.length - 1];
-
-  const injury = profile?.injury || personalizedPlan.injury;
-  const injuryDate = profile?.injuryDate || '';
-  const week = injuryDate ? weeksSince(injuryDate) : 0;
-  const stage = injuryDate ? `Week ${week} of recovery` : personalizedPlan.stage;
-
-  const painLevel = latestEntry ? latestEntry.pain : (profile?.painLevel ?? null);
-  const mobilityLevel = latestEntry ? latestEntry.mobility * 10 : (profile?.mobilityLevel ?? null);
-  const readiness = latestEntry ? computeScore(latestEntry) : 0;
+  const { recoveryProfile, recoveryLogs, mentalLogs, goals } = useAppStore();
+  const latestEntry = recoveryLogs.reduce<typeof recoveryLogs[number] | null>((newest, entry) => {
+    if (!newest || entry.date > newest.date) return entry;
+    return newest;
+  }, null);
+  const latestMentalLog = mentalLogs.reduce<typeof mentalLogs[number] | null>((newest, entry) => {
+    if (!newest || entry.date > newest.date) return entry;
+    return newest;
+  }, null);
+  const recoveryDate = recoveryProfile?.surgeryDate || recoveryProfile?.injuryDate;
+  const duration = recoveryDate ? recoveryDuration(recoveryDate) : null;
+  const painLevel = latestEntry?.pain ?? recoveryProfile?.painLevel ?? null;
+  const mobilityLevel = latestEntry ? latestEntry.mobility * 10 : (recoveryProfile?.mobilityLevel ?? null);
+  const readiness = latestEntry ? computeScore(latestEntry) : null;
 
   return (
     <AppLayout>
-      <PageHeader title="Recovery Plan" subtitle="Your personalized plan based on your injury, recovery stage, pain, and mobility." />
+      <PageHeader title="Recovery Plan" subtitle="Your saved recovery information and goals." />
 
       {/* Plan overview */}
       <div className="grid gap-6 lg:grid-cols-3">
         <Card glass className="bg-gradient-to-br from-blue-600 to-emerald-500 text-white">
           <p className="text-sm text-blue-100">Injury</p>
-          <p className="mt-1 font-bold">{injury || '—'}</p>
+          <p className="mt-1 font-bold">{recoveryProfile?.injury || '—'}</p>
           <div className="mt-4 rounded-2xl bg-white/10 p-3 backdrop-blur">
-            <p className="text-xs text-blue-100">Current Stage</p>
-            <p className="text-sm font-bold">{stage}</p>
+            <p className="text-xs text-blue-100">Recovery duration</p>
+            <p className="text-sm font-bold">{duration || 'Unavailable'}</p>
+            <p className="mt-1 text-xs text-blue-100">{recoveryDate ? `Since ${formatDate(recoveryDate)}` : 'No recovery date saved'}</p>
           </div>
         </Card>
         <Card className="flex items-center justify-around">
           <div className="text-center">
             <p className="text-xs font-semibold text-slate-500">Pain</p>
-            <p className="mt-1 text-3xl font-bold text-rose-500">{loading ? '…' : (painLevel ?? '—')}<span className="text-lg text-slate-400">/10</span></p>
+            <p className="mt-1 text-3xl font-bold text-rose-500">{painLevel ?? '—'}<span className="text-lg text-slate-400">/10</span></p>
           </div>
           <div className="h-12 w-px bg-slate-100" />
           <div className="text-center">
             <p className="text-xs font-semibold text-slate-500">Mobility</p>
-            <p className="mt-1 text-3xl font-bold text-emerald-500">{loading ? '…' : (mobilityLevel ?? '—')}<span className="text-lg text-slate-400">%</span></p>
+            <p className="mt-1 text-3xl font-bold text-emerald-500">{mobilityLevel ?? '—'}<span className="text-lg text-slate-400">%</span></p>
           </div>
         </Card>
         <Card className="flex flex-col items-center justify-center">
-          <RecoveryRing score={readiness} size={110} label="readiness" />
+          {readiness === null ? <p className="text-center text-sm text-slate-500">Readiness unavailable until a recovery log is recorded.</p> : <RecoveryRing score={readiness} size={110} label="readiness (non-clinical)" />}
         </Card>
       </div>
 
-      {/* Today's Goals */}
-      <div className="mt-8">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-bold text-slate-900">Today's Goals</h3>
-          <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-600">{completed}/{goals.length} done</span>
+      <Card className="mt-8">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div><p className="text-xs font-semibold text-slate-500">Recovery goal</p><p className="mt-1 font-bold text-slate-900">{recoveryProfile?.recoveryGoal || 'Unavailable'}</p></div>
+          <div><p className="text-xs font-semibold text-slate-500">Personal motivation</p><p className="mt-1 font-bold text-slate-900">{recoveryProfile?.myWhy || 'Unavailable'}</p></div>
+          <div><p className="text-xs font-semibold text-slate-500">Latest recovery log</p><p className="mt-1 font-bold text-slate-900">{latestEntry ? formatDate(latestEntry.date) : 'Unavailable'}</p></div>
+          <div><p className="text-xs font-semibold text-slate-500">Surgery date</p><p className="mt-1 font-bold text-slate-900">{recoveryProfile?.surgeryDate ? formatDate(recoveryProfile.surgeryDate) : 'Unavailable'}</p></div>
         </div>
-        <Card>
-          <div className="space-y-2">
-            {goals.map((g) => (
-              <button key={g.id} onClick={() => toggleGoal(g.id)} className="flex w-full items-center gap-3 rounded-2xl border border-slate-100 p-3 text-left transition-colors hover:bg-slate-50">
-                <div className={cn('flex h-6 w-6 items-center justify-center rounded-lg border-2 transition-all', g.done ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-300')}>
-                  {g.done && <Check size={14} />}
-                </div>
-                <div className="flex-1">
-                  <p className={cn('text-sm font-medium', g.done ? 'text-slate-400 line-through' : 'text-slate-700')}>{g.title}</p>
-                  <p className="text-xs text-slate-400">{g.detail}</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        </Card>
-      </div>
+      </Card>
 
-      {/* Weekly Goals */}
+      {/* User goals */}
       <div className="mt-8">
-        <h3 className="mb-4 text-lg font-bold text-slate-900">Weekly Goals</h3>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {personalizedPlan.weeklyGoals.map((g, i) => (
-            <motion.div key={g.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+        <h3 className="mb-4 text-lg font-bold text-slate-900">Your Recovery Goals</h3>
+        {goals.length === 0 ? <Card><p className="text-sm text-slate-500">No recovery goals added yet.</p></Card> : <div className="grid gap-4 sm:grid-cols-2">
+          {goals.map((goal, i) => (
+            <motion.div key={goal.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
               <Card hover>
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="font-bold text-slate-900">{g.title}</p>
-                    <p className="mt-0.5 text-xs text-slate-500">{g.detail}</p>
+                    <p className="font-bold text-slate-900">{goal.title}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">{goal.description}</p>
                   </div>
-                  <span className="text-lg font-bold text-blue-600">{g.progress}%</span>
+                  <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold capitalize text-blue-600">{goal.status}</span>
                 </div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${g.progress}%` }} transition={{ delay: 0.2 + i * 0.1, duration: 0.6 }} className="h-full rounded-full bg-gradient-to-r from-blue-500 to-emerald-500" />
+                <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-slate-500">
+                  <span className="rounded-full bg-slate-100 px-2.5 py-0.5 capitalize">{goal.category}</span>
+                  <span className="rounded-full bg-slate-100 px-2.5 py-0.5 capitalize">{goal.priority} priority</span>
+                  <span className="flex items-center gap-1"><Calendar size={13} /> {goal.targetDate ? formatDate(goal.targetDate) : 'No target date'}</span>
                 </div>
+                <div className="mt-3 flex items-center justify-between text-xs font-semibold text-slate-500"><span>Progress</span><span>{goal.progress}%</span></div>
+                <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-100"><motion.div initial={{ width: 0 }} animate={{ width: `${goal.progress}%` }} transition={{ delay: 0.2 + i * 0.1, duration: 0.6 }} className="h-full rounded-full bg-gradient-to-r from-blue-500 to-emerald-500" /></div>
               </Card>
             </motion.div>
           ))}
-        </div>
+        </div>}
       </div>
 
       {/* Milestones */}
       <div className="mt-8">
         <h3 className="mb-4 text-lg font-bold text-slate-900">Upcoming Milestones</h3>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {personalizedPlan.milestones.map((m, i) => {
-            const Icon = milestoneIcons[m.icon] ?? Flag;
-            return (
-              <motion.div key={m.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                <Card hover className="h-full">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-emerald-500 text-white shadow-lg">
-                    <Icon size={20} />
-                  </div>
-                  <span className="mt-3 inline-block rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-600">{m.phase}</span>
-                  <h4 className="mt-2 font-bold text-slate-900">{m.title}</h4>
-                  <p className="mt-1 text-xs leading-relaxed text-slate-500">{m.description}</p>
-                  <p className="mt-2 text-xs font-semibold text-slate-400">Target: {new Date(m.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-                </Card>
-              </motion.div>
-            );
-          })}
-        </div>
+        <Card><div className="flex items-center gap-3 text-sm text-slate-500"><ShieldAlert size={20} className="text-amber-500" /> Recovery milestones will appear here once a personalized recovery plan is available.</div></Card>
       </div>
 
       {/* Recovery Timeline */}
       <div className="mt-8">
         <h3 className="mb-4 text-lg font-bold text-slate-900">Recovery Timeline</h3>
-        <Card>
-          <div className="relative">
-            <div className="absolute left-[19px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-blue-400 via-emerald-400 to-slate-200" />
-            <div className="space-y-6">
-              {personalizedPlan.timeline.map((t, i) => (
-                <motion.div key={t.id} initial={{ opacity: 0, x: 16 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.05 }} className="relative flex gap-4">
-                  <div className={cn('relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full shadow-md', timelineStatusStyles[t.status])}>
-                    {t.status === 'completed' ? <Check size={16} /> : t.status === 'current' ? <Clock size={16} /> : <Activity size={16} />}
-                  </div>
-                  <div className={cn('flex-1 rounded-2xl border p-4', t.status === 'current' ? 'border-amber-200 bg-amber-50/50' : t.status === 'completed' ? 'border-slate-200 bg-white' : 'border-dashed border-slate-200 bg-slate-50')}>
-                    <div className="flex items-center justify-between">
-                      <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-600">{t.phase}</span>
-                      {t.status === 'current' && <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-600">You are here</span>}
-                    </div>
-                    <h4 className={cn('mt-2 font-bold', t.status === 'upcoming' ? 'text-slate-500' : 'text-slate-900')}>{t.title}</h4>
-                    <p className="mt-1 text-sm text-slate-500">{t.description}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </Card>
+        <Card><div className="flex items-center gap-3 text-sm text-slate-500"><Clock3 size={20} className="text-blue-500" /> Recovery phases will appear here once a personalized recovery plan is available.</div></Card>
       </div>
+
+      <div className="mt-8">
+        <h3 className="mb-4 text-lg font-bold text-slate-900">Latest Recovery Log</h3>
+        {latestEntry ? <Card><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div><p className="text-xs font-semibold text-slate-500">Strength</p><p className="mt-1 font-bold text-slate-900">{latestEntry.strength}</p></div>
+          <div><p className="text-xs font-semibold text-slate-500">Sleep</p><p className="mt-1 font-bold text-slate-900">{latestEntry.sleep} hours</p></div>
+          <div><p className="text-xs font-semibold text-slate-500">Energy / mood</p><p className="mt-1 font-bold text-slate-900">{latestEntry.energy} / {latestEntry.mood}</p></div>
+          <div><p className="text-xs font-semibold text-slate-500">Swelling / medication</p><p className="mt-1 font-bold text-slate-900">{latestEntry.swelling} / {latestEntry.medication ? 'Yes' : 'No'}</p></div>
+        </div>{latestEntry.notes && <p className="mt-4 border-t border-slate-100 pt-4 text-sm text-slate-500">{latestEntry.notes}</p>}</Card> : <Card><p className="text-sm text-slate-500">No recovery log recorded yet.</p></Card>}
+      </div>
+
+      {latestMentalLog && <div className="mt-8"><h3 className="mb-4 text-lg font-bold text-slate-900">Latest Mental Check-in</h3><Card><div className="grid gap-4 sm:grid-cols-3">
+        <div><p className="text-xs font-semibold text-slate-500">Anxiety</p><p className="mt-1 font-bold text-slate-900">{latestMentalLog.anxiety}/10</p></div>
+        <div><p className="text-xs font-semibold text-slate-500">Confidence</p><p className="mt-1 font-bold text-slate-900">{latestMentalLog.confidence}/10</p></div>
+        <div><p className="text-xs font-semibold text-slate-500">Motivation</p><p className="mt-1 font-bold text-slate-900">{latestMentalLog.motivation}/10</p></div>
+      </div></Card></div>}
+
+      <div className="mt-8"><Card><div className="flex items-start gap-3"><HeartPulse size={18} className="mt-0.5 text-rose-500" /><div><p className="font-semibold text-slate-900">Exercise assignments</p><p className="mt-1 text-sm text-slate-500">Exercise assignments are unavailable because the current data model does not store assigned exercises.</p></div></div></Card></div>
     </AppLayout>
   );
 }
