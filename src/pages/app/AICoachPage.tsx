@@ -4,9 +4,10 @@ import { Sparkles, Send, AlertTriangle, User, Clock } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { aiCoachResponses, defaultAiResponse } from '@/lib/mockData';
 import type { ChatMessage } from '@/lib/types';
 import { cn } from '@/lib/cn';
+import { aiChatService } from '@/services';
+import { useAppStore } from '@/lib/store';
 
 const suggestions = [
   'Why is my pain worse today?',
@@ -15,26 +16,25 @@ const suggestions = [
   'What should I discuss with my physiotherapist?',
 ];
 
-const initialMessages: ChatMessage[] = [
-  {
-    id: 'c0',
-    role: 'coach',
-    text: "Hi Alex! I'm your AI recovery coach. I can help you understand your progress, suggest exercises, and support you through tough moments. What's on your mind today?",
-    timestamp: new Date().toISOString(),
-  },
-];
-
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 }
 
 export function AICoachPage() {
-  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
+  const { recoveryLogs, mentalLogs } = useAppStore();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
   const [displayedText, setDisplayedText] = useState('');
   const [pendingReply, setPendingReply] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const orderedRecoveryLogs = [...recoveryLogs].sort((a, b) => a.date.localeCompare(b.date));
+  const latestRecovery = orderedRecoveryLogs[orderedRecoveryLogs.length - 1];
+  const previousRecovery = orderedRecoveryLogs[orderedRecoveryLogs.length - 2];
+  const painChange = latestRecovery && previousRecovery ? latestRecovery.pain - previousRecovery.pain : null;
+  const latestConfidence = mentalLogs[0]?.confidence;
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -58,17 +58,22 @@ export function AICoachPage() {
     return () => clearInterval(interval);
   }, [typing, pendingReply]);
 
-  const send = (text: string) => {
+  const send = async (text: string) => {
     if (!text.trim() || typing) return;
     const userMsg: ChatMessage = { id: `u${Date.now()}`, role: 'user', text, timestamp: new Date().toISOString() };
     setMessages((m) => [...m, userMsg]);
     setInput('');
 
-    setTimeout(() => {
-      const reply = aiCoachResponses[text] ?? defaultAiResponse;
-      setPendingReply(reply);
-      setTyping(true);
-    }, 800);
+    setTyping(true);
+    setError(null);
+    try {
+      const conversation = await aiChatService.create(text.trim().slice(0, 60));
+      const { coachResponse } = await aiChatService.sendMessage(conversation.id, text);
+      setPendingReply(coachResponse);
+    } catch (err) {
+      setTyping(false);
+      setError(err instanceof Error ? err.message : 'The AI coach could not respond.');
+    }
   };
 
   return (
@@ -99,6 +104,7 @@ export function AICoachPage() {
             </div>
 
             <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto p-4">
+              {messages.length === 0 && !typing && <div className="py-16 text-center text-sm text-slate-400">Start a conversation when you are ready. Live responses will appear here once AI coaching is configured.</div>}
               {messages.map((m) => (
                 <motion.div key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={cn('flex gap-3', m.role === 'user' && 'flex-row-reverse')}>
                   <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-xl', m.role === 'coach' ? 'bg-gradient-to-br from-blue-600 to-emerald-500 text-white' : 'bg-slate-200 text-slate-600')}>
@@ -153,6 +159,7 @@ export function AICoachPage() {
                 <Send size={18} />
               </button>
             </form>
+            {error && <p className="px-4 pb-3 text-sm text-rose-600">{error}</p>}
           </Card>
         </div>
 
@@ -171,20 +178,18 @@ export function AICoachPage() {
 
           <Card>
             <h3 className="mb-3 font-bold text-slate-900">This week's insight</h3>
-            <p className="text-sm leading-relaxed text-slate-600">
-              Your pain dropped from 6 to 3 and your mood rose from 5 to 9 — the strongest weekly
-              improvement since you started. Sleep is trending up too, which is accelerating tissue repair.
-            </p>
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="rounded-2xl bg-emerald-50 p-3 text-center">
-                <p className="text-2xl font-bold text-emerald-600">-3</p>
-                <p className="text-xs text-slate-500">Pain points</p>
-              </div>
-              <div className="rounded-2xl bg-blue-50 p-3 text-center">
-                <p className="text-2xl font-bold text-blue-600">+4</p>
-                <p className="text-xs text-slate-500">Mood points</p>
-              </div>
-            </div>
+            {painChange !== null || latestConfidence !== undefined ? (
+              <>
+                <p className="text-sm leading-relaxed text-slate-600">
+                  {painChange !== null
+                    ? `Your latest logged pain is ${Math.abs(painChange)} point${Math.abs(painChange) === 1 ? '' : 's'} ${painChange < 0 ? 'lower' : painChange > 0 ? 'higher' : 'unchanged'} than your previous recovery check-in.`
+                    : 'Your latest recovery check-in is recorded. Keep logging to build a personal trend.'}
+                </p>
+                {latestConfidence !== undefined && <p className="mt-2 text-sm text-slate-500">Latest mental confidence: {latestConfidence}/10.</p>}
+              </>
+            ) : (
+              <p className="text-sm leading-relaxed text-slate-500">Complete a recovery or mental check-in to see a personal insight here.</p>
+            )}
           </Card>
 
           <Card>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Dumbbell, Stethoscope, Pill, Flag, ChevronLeft, ChevronRight, Calendar as CalIcon,
@@ -7,8 +7,8 @@ import {
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { calendarEvents } from '@/lib/mockData';
 import type { CalendarEvent } from '@/lib/types';
+import { appointmentService } from '@/services';
 import { cn } from '@/lib/cn';
 
 const typeConfig: Record<CalendarEvent['type'], { icon: LucideIcon; color: string; bg: string; label: string }> = {
@@ -29,8 +29,17 @@ function getFirstDayOfMonth(year: number, month: number): number {
 }
 
 export function CalendarPage() {
-  const [viewDate, setViewDate] = useState(new Date(2026, 6, 1));
-  const [selectedDate, setSelectedDate] = useState<string | null>('2026-07-29');
+  const [viewDate, setViewDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<string | null>(new Date().toISOString().slice(0, 10));
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  useEffect(() => {
+    appointmentService.getAll().then((appointments) => setCalendarEvents(appointments.map((appointment) => ({
+      id: appointment.id, type: 'appointment', title: appointment.title,
+      description: [appointment.provider, appointment.location, appointment.notes].filter(Boolean).join(' · '),
+      date: appointment.date, time: appointment.time,
+    })))).catch(() => setLoadError('Could not load your appointments. Please try again.'));
+  }, []);
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
 
@@ -50,13 +59,14 @@ export function CalendarPage() {
   const formatDateStr = (d: number) => `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 
   const upcomingEvents = [...calendarEvents]
-    .filter((e) => new Date(e.date) >= new Date('2026-07-29'))
+    .filter((e) => new Date(`${e.date}T00:00:00`) >= new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00'))
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 6);
 
   return (
     <AppLayout>
       <PageHeader title="Calendar" subtitle="Track exercises, appointments, medication, and recovery milestones in one place." />
+      {loadError && <p className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-600">{loadError}</p>}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
@@ -81,7 +91,7 @@ export function CalendarPage() {
                 const dateStr = formatDateStr(day);
                 const events = eventsForDate(dateStr);
                 const isSelected = selectedDate === dateStr;
-                const isToday = dateStr === '2026-07-29';
+                const isToday = dateStr === new Date().toISOString().slice(0, 10);
                 return (
                   <button
                     key={day}
@@ -154,6 +164,7 @@ export function CalendarPage() {
           <Card>
             <h3 className="mb-4 font-bold text-slate-900">Upcoming</h3>
             <div className="space-y-3">
+              {upcomingEvents.length === 0 && <p className="text-sm text-slate-400">No upcoming appointments. Add one when you have it scheduled.</p>}
               {upcomingEvents.map((e) => {
                 const cfg = typeConfig[e.type];
                 return (

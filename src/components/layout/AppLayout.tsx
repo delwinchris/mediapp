@@ -7,7 +7,6 @@ const titles: Record<string, string> = {
   '/app/dashboard': 'Dashboard',
   '/app/tracker': 'Recovery Tracker',
   '/app/mental': 'Mental Recovery',
-  '/app/mind': 'Mind Recovery',
   '/app/journal': 'Journal',
   '/app/exercises': 'Exercise Library',
   '/app/progress': 'Progress',

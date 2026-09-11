@@ -13,7 +13,6 @@ import { NetworkErrorPage, NotFoundPage } from '@/pages/ErrorPages';
 const DashboardPage = lazy(() => import('@/pages/app/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const RecoveryTrackerPage = lazy(() => import('@/pages/app/RecoveryTrackerPage').then(m => ({ default: m.RecoveryTrackerPage })));
 const MentalRecoveryPage = lazy(() => import('@/pages/app/MentalRecoveryPage').then(m => ({ default: m.MentalRecoveryPage })));
-const MindRecoveryPage = lazy(() => import('@/pages/app/MindRecoveryPage').then(m => ({ default: m.MindRecoveryPage })));
 const ExerciseLibraryPage = lazy(() => import('@/pages/app/ExerciseLibraryPage').then(m => ({ default: m.ExerciseLibraryPage })));
 const ExerciseDetailPage = lazy(() => import('@/pages/app/ExerciseDetailPage').then(m => ({ default: m.ExerciseDetailPage })));
 const ProgressPage = lazy(() => import('@/pages/app/ProgressPage').then(m => ({ default: m.ProgressPage })));
@@ -67,7 +66,6 @@ const skeletonMap: Record<string, ReactNode> = {
   '/app/dashboard': <DashboardSkeleton />,
   '/app/tracker': <RecoverySkeleton />,
   '/app/mental': <RecoverySkeleton />,
-  '/app/mind': <RecoverySkeleton />,
   '/app/exercises': <ExerciseSkeleton />,
   '/app/progress': <ChartSkeleton />,
   '/app/analytics': <ChartSkeleton />,
@@ -106,7 +104,7 @@ function AppRoutes() {
         <Route path="dashboard" element={<ProtectedRoute><Suspense fallback={fallback}><DashboardPage /></Suspense></ProtectedRoute>} />
         <Route path="tracker" element={<ProtectedRoute><Suspense fallback={fallback}><RecoveryTrackerPage /></Suspense></ProtectedRoute>} />
         <Route path="mental" element={<ProtectedRoute><Suspense fallback={fallback}><MentalRecoveryPage /></Suspense></ProtectedRoute>} />
-        <Route path="mind" element={<ProtectedRoute><Suspense fallback={fallback}><MindRecoveryPage /></Suspense></ProtectedRoute>} />
+        <Route path="mind" element={<Navigate to="/app/mental" replace />} />
         <Route path="exercises" element={<ProtectedRoute><Suspense fallback={fallback}><ExerciseLibraryPage /></Suspense></ProtectedRoute>} />
         <Route path="exercises/:id" element={<ProtectedRoute><Suspense fallback={fallback}><ExerciseDetailPage /></Suspense></ProtectedRoute>} />
         <Route path="progress" element={<ProtectedRoute><Suspense fallback={fallback}><ProgressPage /></Suspense></ProtectedRoute>} />

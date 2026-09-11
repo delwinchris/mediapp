@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Palette, Bell, Shield, Eye, Globe, Download, Moon, Sun, Check, type LucideIcon,
+  Palette, Bell, Shield, Eye, Globe, Download, Moon, Sun, Check,
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card } from '@/components/ui/Card';

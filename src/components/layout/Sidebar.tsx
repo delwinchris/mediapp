@@ -8,7 +8,6 @@ import {
   LineChart,
   User,
   X,
-  Wind,
   BarChart3,
   Trophy,
   Calendar,
@@ -27,6 +26,7 @@ import {
 } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
 import { cn } from '@/lib/cn';
+import { useAppStore } from '@/lib/store';
 
 interface SidebarProps {
   open: boolean;
@@ -37,7 +37,6 @@ const navItems = [
   { to: '/app/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/app/tracker', label: 'Recovery Tracker', icon: HeartPulse },
   { to: '/app/mental', label: 'Mental Recovery', icon: Brain },
-  { to: '/app/mind', label: 'Mind Recovery', icon: Wind },
   { to: '/app/journal', label: 'Journal', icon: BookHeart },
   { to: '/app/exercises', label: 'Exercise Library', icon: Dumbbell },
   { to: '/app/progress', label: 'Progress', icon: LineChart },
@@ -62,6 +61,15 @@ const navItems = [
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const location = useLocation();
+  const { recoveryLogs } = useAppStore();
+  const dates = [...new Set(recoveryLogs.map((entry) => entry.date))].sort();
+  let streak = dates.length > 0 ? 1 : 0;
+  for (let index = dates.length - 1; index > 0; index -= 1) {
+    const previous = new Date(`${dates[index - 1]}T00:00:00`);
+    const current = new Date(`${dates[index]}T00:00:00`);
+    if (Math.round((current.getTime() - previous.getTime()) / 86400000) !== 1) break;
+    streak += 1;
+  }
 
   return (
     <>
@@ -87,40 +95,40 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
         <nav className="flex-1 space-y-1 px-3 py-4">
           <p className="px-3 pb-2 text-xs font-bold uppercase tracking-wider text-slate-400">Menu</p>
-        <div className="max-h-[calc(100vh-280px)] space-y-1 overflow-y-auto pb-2">
-          {navItems.map((item) => {
-            const active = location.pathname === item.to;
-            return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                onClick={onClose}
-                className={cn(
-                  'group flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-semibold transition-all duration-200',
-                  active
-                    ? 'bg-gradient-to-r from-blue-50 to-emerald-50 text-blue-700 shadow-sm'
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-                )}
-              >
-                <span
+          <div className="max-h-[calc(100vh-280px)] space-y-1 overflow-y-auto pb-2">
+            {navItems.map((item) => {
+              const active = location.pathname === item.to;
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  onClick={onClose}
                   className={cn(
-                    'flex h-9 w-9 items-center justify-center rounded-xl transition-colors',
+                    'group flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-semibold transition-all duration-200',
                     active
-                      ? 'bg-gradient-to-br from-blue-600 to-emerald-500 text-white shadow-md shadow-blue-600/30'
-                      : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200'
+                      ? 'bg-gradient-to-r from-blue-50 to-emerald-50 text-blue-700 shadow-sm'
+                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                   )}
                 >
-                  <item.icon size={18} />
-                </span>
-                {item.label}
-              </NavLink>
-            );
-          })}
-        </div>
+                  <span
+                    className={cn(
+                      'flex h-9 w-9 items-center justify-center rounded-xl transition-colors',
+                      active
+                        ? 'bg-gradient-to-br from-blue-600 to-emerald-500 text-white shadow-md shadow-blue-600/30'
+                        : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200'
+                    )}
+                  >
+                    <item.icon size={18} />
+                  </span>
+                  {item.label}
+                </NavLink>
+              );
+            })}
+          </div>
         </nav>
 
         <div className="m-3 rounded-2xl bg-gradient-to-br from-blue-600 to-emerald-500 p-5 text-white">
-          <p className="text-sm font-bold">7-day streak</p>
+          <p className="text-sm font-bold">{streak}-day streak</p>
           <p className="mt-1 text-xs text-blue-100">Keep logging daily to maintain your recovery streak.</p>
         </div>
       </aside>

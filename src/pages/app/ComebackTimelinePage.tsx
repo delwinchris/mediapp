@@ -1,14 +1,11 @@
 import { motion } from 'framer-motion';
-import { Check, Lock, type LucideIcon } from 'lucide-react';
-import { Flag, Footprints, Dumbbell, Trophy, Mountain, Calendar } from 'lucide-react';
+import { Check, Lock } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { Button } from '@/components/ui/Button';
 import { comebackTimeline } from '@/lib/emotionalData';
 import { cn } from '@/lib/cn';
-
-const phaseIcons: Record<string, LucideIcon> = { Flag, Footprints, Dumbbell, Trophy, Mountain };
 
 export function ComebackTimelinePage() {
   const achievedCount = comebackTimeline.filter((m) => m.achieved).length;

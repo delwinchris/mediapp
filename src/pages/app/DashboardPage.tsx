@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   HeartPulse, Smile, Moon, Footprints, Flame, ArrowRight, Check, Sparkles, Dumbbell,
-  Droplets, Pill, TrendingUp, BookHeart, Trophy, LifeBuoy, Calendar, Quote, Brain,
+  TrendingUp, Trophy, LifeBuoy, Calendar, Quote, Brain,
   Sunrise, Sun, Sunset, Play, ClipboardList, Activity,
   Target, Mountain, Mail, type LucideIcon,
 } from 'lucide-react';
@@ -15,9 +15,6 @@ import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useAuth } from '@/lib/auth';
 import { useAppStore } from '@/lib/store';
-import {
-  aiCoachMessage,
-} from '@/lib/mockData';
 import { formatDate } from '@/lib/analytics';
 import { getAiEncouragement, myWhyOptions } from '@/lib/emotionalData';
 import { recoveryLogService } from '@/services';
@@ -85,14 +82,14 @@ export function DashboardPage() {
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const todayEntry = history.find((e) => e.date === todayStr);
-  const latestEntry = history[history.length - 1];
   const latestPersistedEntry = history[0];
 
-  const score = todayEntry ? computeScore(todayEntry) : (latestEntry ? computeScore(latestEntry) : 0);
+  const score = todayEntry ? computeScore(todayEntry) : (latestPersistedEntry ? computeScore(latestPersistedEntry) : 0);
   const streak = computeStreak(history);
-  const series = history.map((e) => ({ date: e.date.slice(5), score: computeScore(e) }));
-  const painData = history.map((e) => ({ date: e.date.slice(5), value: e.pain }));
-  const mobilityData = history.map((e) => ({ date: e.date.slice(5), value: e.mobility }));
+  const chronologicalHistory = history.slice().sort((a, b) => a.date.localeCompare(b.date));
+  const series = chronologicalHistory.map((e) => ({ date: e.date.slice(5), score: computeScore(e) }));
+  const painData = chronologicalHistory.map((e) => ({ date: e.date.slice(5), value: e.pain }));
+  const mobilityData = chronologicalHistory.map((e) => ({ date: e.date.slice(5), value: e.mobility }));
 
   const firstName = user?.name?.split(' ')[0] ?? 'there';
   const recoveryStartDate = user?.profile?.surgeryDate ?? user?.profile?.injuryDate;
@@ -119,6 +116,9 @@ export function DashboardPage() {
     : 'Every recovery journey starts with one small step.';
   const dailyEncouragement = 'Keep taking the next step that supports your recovery today.';
   const recoveryReadiness = latestPersistedEntry ? computeScore(latestPersistedEntry) : null;
+  const dashboardInsight = latestPersistedEntry
+    ? `Your latest recovery check-in shows pain at ${latestPersistedEntry.pain}/10, mobility at ${latestPersistedEntry.mobility * 10}%, and sleep at ${latestPersistedEntry.sleep} hours. Keep logging to reveal your personal trends.`
+    : 'Complete your first recovery check-in to see a personal insight here.';
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -382,7 +382,7 @@ export function DashboardPage() {
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg"><Flame size={24} /></div>
           <div>
             <p className="text-2xl font-bold text-slate-900">{streak}-day streak</p>
-            <p className="text-sm text-slate-500">You completed your rehabilitation exercises for {streak} consecutive days. That kind of consistency is exactly what drives long-term recovery.</p>
+            <p className="text-sm text-slate-500">You have logged recovery check-ins on {streak} consecutive {streak === 1 ? 'day' : 'days'}. Keep recording how you feel to build an honest trend.</p>
           </div>
         </div>
       </Card>
@@ -484,7 +484,7 @@ export function DashboardPage() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {realInsights.map((ins, i) => {
-            const Icon = insightIcons[ins.icon] ?? TrendingUp;
+              const Icon = insightIcons[ins.icon] ?? TrendingUp;
               const neutral = ins.trend === 'neutral';
               const good = ins.trend === 'up';
               return (
@@ -518,7 +518,7 @@ export function DashboardPage() {
             {dashboardGoals.map((goal, i) => {
               const progress = Math.min(100, Math.max(0, goal.progress));
               const completed = goal.status === 'completed';
-            return (
+              return (
                 <motion.div key={goal.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
                   <Card hover className="h-full">
                     <div className={cn('flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br text-white shadow-lg', completed ? 'from-emerald-500 to-teal-500' : 'from-blue-500 to-emerald-500')}>
@@ -609,7 +609,7 @@ export function DashboardPage() {
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/20 backdrop-blur"><Sparkles size={24} /></div>
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-violet-100">AI Recovery Insight</p>
-              <p className="mt-2 text-base font-medium leading-relaxed">{aiCoachMessage}</p>
+              <p className="mt-2 text-base font-medium leading-relaxed">{dashboardInsight}</p>
               <Link to="/app/insights" className="mt-4 inline-block">
                 <Button className="bg-white/20 text-white hover:bg-white/30" size="sm">View all insights <ArrowRight size={14} /></Button>
               </Link>
@@ -724,7 +724,7 @@ export function DashboardPage() {
           <div className="relative">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/20 backdrop-blur"><Sparkles size={22} /></div>
             <h3 className="mt-4 text-lg font-bold">AI Recovery Coach</h3>
-            <p className="mt-2 text-sm leading-relaxed text-blue-50">"{aiCoachMessage}"</p>
+            <p className="mt-2 text-sm leading-relaxed text-blue-50">"{dashboardInsight}"</p>
             <div className="mt-4 flex items-start gap-2 rounded-2xl bg-white/10 p-3 text-xs text-blue-50 backdrop-blur">
               <LifeBuoy size={14} className="mt-0.5 shrink-0" />
               <span>AI provides educational information only and is not a substitute for professional medical advice.</span>

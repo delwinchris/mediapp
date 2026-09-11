@@ -19,6 +19,7 @@ export { exerciseService } from './exerciseService';
 export { notificationService } from './notificationService';
 export { appointmentService } from './appointmentService';
 export { aiChatService } from './aiChatService';
+export { buildAchievementSet } from './achievementService';
 
 export type {
   UserProfile, RecoveryEntry, MentalEntry, Exercise, JournalEntry,

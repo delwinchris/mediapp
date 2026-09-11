@@ -28,7 +28,7 @@ export const mentalLogService = {
   async create(data: Omit<MentalEntry, 'id'>): Promise<MentalEntry> {
     const { data: row, error } = await supabase
       .from('mental_logs')
-      .insert({
+      .upsert({
         date: data.date,
         anxiety: data.anxiety,
         confidence: data.confidence,
@@ -36,7 +36,7 @@ export const mentalLogService = {
         motivation: data.motivation,
         stress: data.stress,
         journal: data.journal,
-      })
+      }, { onConflict: 'user_id,date' })
       .select('*')
       .single();
     if (error) throw error;

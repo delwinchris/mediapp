@@ -2,7 +2,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft, Dumbbell, Target, Package, Gauge, CheckCircle, AlertTriangle, Shield,
-  Play, Image as ImageIcon, Clock,
+  Image as ImageIcon, Clock,
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card } from '@/components/ui/Card';
@@ -55,12 +55,9 @@ export function ExerciseDetailPage() {
             <div className="relative h-64 bg-gradient-to-br from-slate-100 to-slate-200 sm:h-80">
               <img src={exercise.image} alt={exercise.name} className="h-full w-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent" />
-              <div className="absolute bottom-4 left-4 flex gap-2">
-                <Button size="sm" className="bg-white/90 text-slate-900 hover:bg-white"><Play size={16} /> Watch Demo</Button>
-              </div>
             </div>
             <div className="flex items-center gap-2 border-b border-slate-100 p-3 text-xs text-slate-400">
-              <ImageIcon size={14} /> Image placeholder · <Play size={14} /> Video placeholder
+              <ImageIcon size={14} /> Reference image · follow the written instructions below
             </div>
           </Card>
 

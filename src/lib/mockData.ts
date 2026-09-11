@@ -1,8 +1,4 @@
 import type {
-  UserProfile,
-  DailyGoal,
-  RecoveryEntry,
-  MentalEntry,
   MindCheckIn,
   JournalEntry,
   TimelineMilestone,
@@ -30,51 +26,6 @@ import type {
   SearchResult,
   AdvancedInsight,
 } from './types';
-
-export const mockUser: UserProfile = {
-  id: 'u1',
-  name: 'Alex Morgan',
-  email: 'alex.morgan@example.com',
-  age: 34,
-  height: 178,
-  weight: 76,
-  injury: 'ACL Reconstruction Surgery',
-  injuryDate: '2026-05-14',
-  painLevel: 4,
-  mobilityLevel: 6,
-  recoveryGoal: 'Return to competitive running within 9 months',
-  myWhy: 'Badminton',
-  avatarUrl:
-    'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=200',
-};
-
-export const dailyGoals: DailyGoal[] = [
-  { id: 'g1', title: 'Complete 3 prescribed exercises', done: true },
-  { id: 'g2', title: 'Walk 2,000 steps', done: true },
-  { id: 'g3', title: 'Ice knee for 15 minutes', done: false },
-  { id: 'g4', title: 'Log recovery tracker entry', done: false },
-  { id: 'g5', title: '10 minutes guided breathing', done: false },
-];
-
-export const recoveryHistory: RecoveryEntry[] = [
-  { id: 'r1', date: '2026-07-21', pain: 6, mobility: 4, strength: 30, sleep: 6, energy: 5, swelling: 7, mood: 5, medication: true, notes: 'Stiffness in the morning, eased after warm-up.' },
-  { id: 'r2', date: '2026-07-22', pain: 5, mobility: 5, strength: 35, sleep: 7, energy: 6, swelling: 6, mood: 6, medication: true, notes: 'Felt good after physio session.' },
-  { id: 'r3', date: '2026-07-23', pain: 5, mobility: 5, strength: 38, sleep: 6, energy: 6, swelling: 5, mood: 6, medication: true, notes: 'Steady day, no major setbacks.' },
-  { id: 'r4', date: '2026-07-24', pain: 4, mobility: 6, strength: 42, sleep: 7, energy: 7, swelling: 4, mood: 7, medication: false, notes: 'Managed a longer walk.' },
-  { id: 'r5', date: '2026-07-25', pain: 4, mobility: 6, strength: 45, sleep: 8, energy: 7, swelling: 4, mood: 8, medication: true, notes: 'Best sleep in weeks.' },
-  { id: 'r6', date: '2026-07-26', pain: 3, mobility: 7, strength: 50, sleep: 7, energy: 8, swelling: 3, mood: 8, medication: true, notes: 'Tried light cycling.' },
-  { id: 'r7', date: '2026-07-27', pain: 3, mobility: 7, strength: 55, sleep: 7, energy: 8, swelling: 3, mood: 9, medication: true, notes: 'Feeling optimistic today.' },
-];
-
-export const mentalHistory: MentalEntry[] = [
-  { id: 'm1', date: '2026-07-21', anxiety: 7, confidence: 4, fearOfReinjury: 8, motivation: 5, stress: 7, journal: 'Worried about twisting the knee again.' },
-  { id: 'm2', date: '2026-07-22', anxiety: 6, confidence: 5, fearOfReinjury: 7, motivation: 6, stress: 6, journal: 'Physio reassured me about progress.' },
-  { id: 'm3', date: '2026-07-23', anxiety: 5, confidence: 6, fearOfReinjury: 6, motivation: 7, stress: 5, journal: 'Started breathing exercises.' },
-  { id: 'm4', date: '2026-07-24', anxiety: 5, confidence: 6, fearOfReinjury: 5, motivation: 7, stress: 5, journal: 'Walk felt more natural.' },
-  { id: 'm5', date: '2026-07-25', anxiety: 4, confidence: 7, fearOfReinjury: 5, motivation: 8, stress: 4, journal: 'Slept well, woke up hopeful.' },
-  { id: 'm6', date: '2026-07-26', anxiety: 4, confidence: 7, fearOfReinjury: 4, motivation: 8, stress: 4, journal: 'Cycling was fun, felt like me again.' },
-  { id: 'm7', date: '2026-07-27', anxiety: 3, confidence: 8, fearOfReinjury: 4, motivation: 9, stress: 3, journal: 'Ready to push a little more this week.' },
-];
 
 export const exercises: Exercise[] = [
   {
@@ -308,7 +259,8 @@ export const mindHistory: MindCheckIn[] = [
   { anxiety: 3, confidence: 8, fearOfReinjury: 4, motivation: 9, stress: 3, hopefulness: 9, frustration: 3 },
 ];
 
-export const mindChartDates = recoveryHistory.map((e) => e.date.slice(5));
+// Historical chart dates are supplied by persisted mental logs at runtime.
+export const mindChartDates: string[] = [];
 
 export const journalEntries: JournalEntry[] = [
   { id: 'j1', date: '2026-07-25', feeling: 'Hopeful and rested', win: 'Walked 2km without pain', challenge: 'Stairs still feel scary', grateful: 'Grateful for my supportive partner.' },

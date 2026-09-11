@@ -6,8 +6,8 @@ import {
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { advancedInsights } from '@/lib/mockData';
 import { cn } from '@/lib/cn';
+import { useAppStore } from '@/lib/store';
 
 const iconMap: Record<string, LucideIcon> = {
   HeartPulse, Footprints, Moon, Flame, TrendingUp, Smile,
@@ -23,6 +23,15 @@ const accentGradients: Record<string, string> = {
 };
 
 export function AdvancedInsightsPage() {
+  const { recoveryLogs, mentalLogs, goals } = useAppStore();
+  const latest = recoveryLogs[0];
+  const previous = recoveryLogs[1];
+  const insights = [
+    ...(latest ? [{ id: 'latest-check-in', title: 'Latest check-in', description: `Your latest recorded pain level is ${latest.pain}/10 and mobility is ${latest.mobility * 10}%.`, icon: 'HeartPulse', trend: 'neutral', trendValue: 'Latest', accent: 'blue', metric: 'Recovery log' }] : []),
+    ...(latest && previous ? [{ id: 'pain-change', title: 'Pain change', description: `Pain changed from ${previous.pain}/10 to ${latest.pain}/10 between your two most recent check-ins.`, icon: 'HeartPulse', trend: latest.pain <= previous.pain ? 'up' : 'down', trendValue: `${latest.pain - previous.pain}`, accent: 'rose', metric: 'Pain' }] : []),
+    ...(mentalLogs[0] ? [{ id: 'mental-check-in', title: 'Mental check-in', description: `Your latest confidence is ${mentalLogs[0].confidence}/10 and stress is ${mentalLogs[0].stress}/10.`, icon: 'Smile', trend: 'neutral', trendValue: 'Latest', accent: 'emerald', metric: 'Mental log' }] : []),
+    ...(goals.length ? [{ id: 'goals', title: 'Goal progress', description: `You have ${goals.filter((goal) => goal.status === 'active').length} active recovery goal${goals.filter((goal) => goal.status === 'active').length === 1 ? '' : 's'}.`, icon: 'TrendingUp', trend: 'neutral', trendValue: `${goals.length}`, accent: 'violet', metric: 'Goals' }] : []),
+  ];
   return (
     <AppLayout>
       <PageHeader title="AI Insights" subtitle="Premium, AI-generated insights based on your recovery data trends." />
@@ -35,14 +44,14 @@ export function AdvancedInsightsPage() {
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 backdrop-blur"><Sparkles size={28} /></div>
           <div>
             <h3 className="text-xl font-bold">Your Recovery at a Glance</h3>
-            <p className="mt-1 text-sm text-blue-50">6 AI-generated insights based on the last 30 days of data</p>
+            <p className="mt-1 text-sm text-blue-50">Insights calculated from your saved recovery data</p>
           </div>
         </div>
       </Card>
 
       {/* Insight cards */}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {advancedInsights.map((ins, i) => {
+      {insights.length === 0 ? <Card className="py-16 text-center"><p className="font-semibold text-slate-700">Keep logging your recovery to unlock personalized insights.</p><p className="mt-2 text-sm text-slate-400">Your data stays empty until you record a check-in, goal, or mental check-in.</p></Card> : <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {insights.map((ins, i) => {
           const Icon = iconMap[ins.icon] ?? TrendingUp;
           const isPositive = ins.trend === 'up';
           const isNeutral = ins.trend === 'neutral';
@@ -73,7 +82,7 @@ export function AdvancedInsightsPage() {
             </motion.div>
           );
         })}
-      </div>
+      </div>}
     </AppLayout>
   );
 }

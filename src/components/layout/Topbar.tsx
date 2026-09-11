@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, Bell, Search, Dumbbell, HeartPulse, BookHeart, Trophy, Sparkles, Droplets, FileText, Stethoscope, Flame, X } from 'lucide-react';
-import { mockUser, searchResults } from '@/lib/mockData';
+import { exercises } from '@/lib/mockData';
+import { useAuth } from '@/lib/auth';
 import type { SearchResult } from '@/lib/types';
 import { useAppStore } from '@/lib/store';
 import { cn } from '@/lib/cn';
@@ -35,6 +36,7 @@ const notificationIcons: Record<string, typeof Bell> = {
 export function Topbar({ onMenuClick, title }: TopbarProps) {
   const navigate = useNavigate();
   const { notifications, markNotificationRead } = useAppStore();
+  const { user } = useAuth();
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [bellOpen, setBellOpen] = useState(false);
@@ -50,9 +52,12 @@ export function Topbar({ onMenuClick, title }: TopbarProps) {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  const exerciseResults: SearchResult[] = exercises.map((exercise) => ({
+    id: exercise.id, type: 'exercise', icon: 'Dumbbell', title: exercise.name, description: `${exercise.targetArea} · ${exercise.difficulty}`, route: `/app/exercises/${exercise.id}`,
+  }));
   const filtered: SearchResult[] = query.trim()
-    ? searchResults.filter((r) => r.title.toLowerCase().includes(query.toLowerCase()) || r.description.toLowerCase().includes(query.toLowerCase()))
-    : searchResults.slice(0, 6);
+    ? exerciseResults.filter((result) => result.title.toLowerCase().includes(query.toLowerCase()) || result.description.toLowerCase().includes(query.toLowerCase()))
+    : exerciseResults.slice(0, 6);
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const goTo = (route: string) => {
@@ -188,8 +193,14 @@ export function Topbar({ onMenuClick, title }: TopbarProps) {
         </div>
 
         <button onClick={() => navigate('/app/profile')} className="flex items-center gap-2 rounded-2xl p-1 pr-3 transition-colors hover:bg-slate-100">
-          <img src={mockUser.avatarUrl} alt={mockUser.name} className="h-9 w-9 rounded-xl object-cover" />
-          <span className="hidden text-sm font-semibold text-slate-700 sm:block">{mockUser.name.split(' ')[0]}</span>
+          {user?.profile?.avatarUrl ? (
+            <img src={user.profile.avatarUrl} alt={user.name} className="h-9 w-9 rounded-xl object-cover" />
+          ) : (
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-100 text-sm font-bold text-blue-700" aria-label={`${user?.name ?? 'User'} avatar`}>
+              {(user?.name ?? user?.email ?? 'U').trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()}
+            </span>
+          )}
+          <span className="hidden text-sm font-semibold text-slate-700 sm:block">{user?.name?.split(' ')[0] ?? 'Account'}</span>
         </button>
       </div>
     </header>

@@ -14,23 +14,13 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { RecoveryRing } from '@/components/ui/RecoveryRing';
 import { swellingLevels, exercises } from '@/lib/mockData';
 import { formatDate } from '@/lib/analytics';
-import { recoveryLogService } from '@/services';
+import { exerciseService, recoveryLogService } from '@/services';
 import type { RecoveryEntry } from '@/lib/types';
 import { cn } from '@/lib/cn';
 
 const milestoneIcons: Record<string, LucideIcon> = {
   Flag, HeartPulse, Footprints, Activity, Dumbbell, Bike, Trophy, Medal,
 };
-
-const recoveryMilestones = [
-  { id: 'm1', title: 'Surgery Completed', date: '2026-05-14', achieved: true, icon: 'Flag' },
-  { id: 'm2', title: 'First Pain-Free Day', date: '2026-05-28', achieved: true, icon: 'HeartPulse' },
-  { id: 'm3', title: 'First Walk', date: '2026-06-14', achieved: true, icon: 'Footprints' },
-  { id: 'm4', title: 'First Full Range of Motion', date: '2026-08-14', achieved: false, icon: 'Activity' },
-  { id: 'm5', title: 'First Gym Session', date: '2026-11-14', achieved: false, icon: 'Dumbbell' },
-  { id: 'm6', title: 'Return to Work', date: '2026-09-01', achieved: false, icon: 'Medal' },
-  { id: 'm7', title: 'Return to Sport', date: '2027-02-14', achieved: false, icon: 'Trophy' },
-];
 
 const todaysExercises = exercises.slice(0, 4);
 
@@ -60,8 +50,11 @@ export function RecoveryTrackerPage() {
 
   useEffect(() => {
     recoveryLogService.getAll()
-      .then(setHistory)
+      .then((entries) => setHistory(entries.slice().sort((a, b) => a.date.localeCompare(b.date))))
       .catch((err) => console.error('Failed to load recovery history:', err));
+    exerciseService.getHistory()
+      .then((sessions) => setCompleted(Object.fromEntries(sessions.filter((s) => s.completed).map((s) => [s.exerciseId, true]))))
+      .catch((err) => console.error('Failed to load exercise history:', err));
   }, []);
 
   const handleSave = async () => {
@@ -91,7 +84,7 @@ export function RecoveryTrackerPage() {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2500);
       const fresh = await recoveryLogService.getAll();
-      setHistory(fresh);
+      setHistory(fresh.slice().sort((a, b) => a.date.localeCompare(b.date)));
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Failed to save your entry. Please try again.');
     } finally {
@@ -207,6 +200,7 @@ export function RecoveryTrackerPage() {
                   <p className="mt-1 text-sm text-slate-600">{e.notes}</p>
                 </div>
               ))}
+              {history.length === 0 && <p className="text-sm text-slate-400">Your saved notes will appear here.</p>}
             </div>
           </Card>
         </div>
@@ -220,6 +214,7 @@ export function RecoveryTrackerPage() {
             <h4 className="mb-1 font-bold text-slate-900">Pain Trend</h4>
             <p className="mb-4 text-xs text-slate-400">Lower is better</p>
             <div className="h-48">
+              {painData.length === 0 ? <div className="flex h-full items-center justify-center text-sm text-slate-400">Log a check-in to see your pain trend.</div> :
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={painData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                   <defs><linearGradient id="painG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f43f5e" stopOpacity={0.3} /><stop offset="100%" stopColor="#f43f5e" stopOpacity={0.02} /></linearGradient></defs>
@@ -229,13 +224,14 @@ export function RecoveryTrackerPage() {
                   <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }} />
                   <Area type="monotone" dataKey="value" stroke="#f43f5e" strokeWidth={2.5} fill="url(#painG)" />
                 </AreaChart>
-              </ResponsiveContainer>
+              </ResponsiveContainer>}
             </div>
           </Card>
           <Card>
             <h4 className="mb-1 font-bold text-slate-900">Mobility Trend</h4>
             <p className="mb-4 text-xs text-slate-400">Higher is better</p>
             <div className="h-48">
+              {mobilityData.length === 0 ? <div className="flex h-full items-center justify-center text-sm text-slate-400">Log a check-in to see your mobility trend.</div> :
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={mobilityData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                   <defs><linearGradient id="mobG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#10b981" stopOpacity={0.3} /><stop offset="100%" stopColor="#10b981" stopOpacity={0.02} /></linearGradient></defs>
@@ -245,13 +241,14 @@ export function RecoveryTrackerPage() {
                   <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }} />
                   <Area type="monotone" dataKey="value" stroke="#10b981" strokeWidth={2.5} fill="url(#mobG)" />
                 </AreaChart>
-              </ResponsiveContainer>
+              </ResponsiveContainer>}
             </div>
           </Card>
           <Card>
             <h4 className="mb-1 font-bold text-slate-900">Strength Progress</h4>
             <p className="mb-4 text-xs text-slate-400">Higher is better</p>
             <div className="h-48">
+              {strengthData.length === 0 ? <div className="flex h-full items-center justify-center text-sm text-slate-400">Log a check-in to see strength progress.</div> :
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={strengthData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                   <defs><linearGradient id="strG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#2563eb" stopOpacity={0.3} /><stop offset="100%" stopColor="#2563eb" stopOpacity={0.02} /></linearGradient></defs>
@@ -261,13 +258,14 @@ export function RecoveryTrackerPage() {
                   <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }} />
                   <Area type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={2.5} fill="url(#strG)" />
                 </AreaChart>
-              </ResponsiveContainer>
+              </ResponsiveContainer>}
             </div>
           </Card>
           <Card>
             <h4 className="mb-1 font-bold text-slate-900">Recovery Score</h4>
             <p className="mb-4 text-xs text-slate-400">Overall progress</p>
             <div className="h-48">
+              {scoreData.length === 0 ? <div className="flex h-full items-center justify-center text-sm text-slate-400">Log a check-in to calculate a recovery score.</div> :
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={scoreData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
@@ -276,7 +274,7 @@ export function RecoveryTrackerPage() {
                   <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }} />
                   <Line type="monotone" dataKey="score" stroke="#2563eb" strokeWidth={2.5} dot={false} />
                 </LineChart>
-              </ResponsiveContainer>
+              </ResponsiveContainer>}
             </div>
           </Card>
         </div>
@@ -322,7 +320,9 @@ export function RecoveryTrackerPage() {
           <div className="relative">
             <div className="absolute left-[19px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-blue-400 via-emerald-400 to-slate-200" />
             <div className="space-y-6">
-              {recoveryMilestones.map((m, i) => {
+              {history.length === 0 && <p className="relative z-10 text-sm text-slate-400">Your recovery check-ins will build an honest timeline here.</p>}
+              {history.slice().reverse().slice(0, 7).map((entry, i) => {
+                const m = { id: entry.id, title: 'Recovery check-in', date: entry.date, achieved: true, icon: 'HeartPulse' };
                 const Icon = milestoneIcons[m.icon] ?? Flag;
                 return (
                   <motion.div key={m.id} initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.05 }} className="relative flex gap-4">
@@ -335,7 +335,7 @@ export function RecoveryTrackerPage() {
                         <span className="text-xs font-semibold text-slate-400">{formatDate(m.date)}</span>
                       </div>
                       {m.achieved ? (
-                        <span className="mt-2 inline-block rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-600">Completed</span>
+                        <span className="mt-2 inline-block rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-600">Logged</span>
                       ) : (
                         <span className="mt-2 inline-block rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-600">Upcoming</span>
                       )}
@@ -375,7 +375,13 @@ export function RecoveryTrackerPage() {
                         size="sm"
                         variant={done ? 'outline' : 'primary'}
                         className="mt-3"
-                        onClick={() => setCompleted((c) => ({ ...c, [ex.id]: !c[ex.id] }))}
+                        onClick={async () => {
+                          if (done) return;
+                          try {
+                            await exerciseService.logSession({ exerciseId: ex.id, exerciseName: ex.name, date: new Date().toISOString().slice(0, 10), setsCompleted: ex.sets, repsCompleted: ex.reps, duration: ex.duration ?? '', difficulty: ex.difficulty, completed: true });
+                            setCompleted((c) => ({ ...c, [ex.id]: true }));
+                          } catch (err) { setSaveError(err instanceof Error ? err.message : 'Could not save exercise completion.'); }
+                        }}
                       >
                         {done ? (<><Check size={16} /> Completed</>) : 'Complete'}
                       </Button>
@@ -412,6 +418,7 @@ export function RecoveryTrackerPage() {
                   <td className="py-3 pr-4 text-slate-600">{e.mood}/10</td>
                 </motion.tr>
               ))}
+              {history.length === 0 && <tr><td colSpan={8} className="py-8 text-center text-slate-400">No recovery check-ins yet.</td></tr>}
             </tbody>
           </table>
         </div>

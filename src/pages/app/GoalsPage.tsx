@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Target, Plus, Trophy, Calendar, Flag, Check, X, Activity, Brain, Heart, Dumbbell,
+  Target, Plus, Trophy, Calendar, Check, X, Activity, Brain, Heart, Dumbbell,
   type LucideIcon,
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -43,6 +43,8 @@ function formatDate(iso: string): string {
 export function GoalsPage() {
   const { goals, addGoal, updateGoal, deleteGoal } = useAppStore();
   const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [newGoal, setNewGoal] = useState({
     title: '', description: '', category: 'physical' as Goal['category'],
@@ -54,8 +56,10 @@ export function GoalsPage() {
   const completedCount = goals.filter((g) => g.status === 'completed').length;
   const avgProgress = goals.length > 0 ? Math.round(goals.reduce((s, g) => s + g.progress, 0) / goals.length) : 0;
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!newGoal.title.trim()) return;
+    setSaving(true);
+    setActionError(null);
     const goal: Goal = {
       id: `goal_${Date.now()}`,
       title: newGoal.title,
@@ -67,9 +71,33 @@ export function GoalsPage() {
       status: 'active',
       createdAt: new Date().toISOString().slice(0, 10),
     };
-    addGoal(goal);
-    setNewGoal({ title: '', description: '', category: 'physical', priority: 'medium', targetDate: '' });
-    setShowForm(false);
+    try {
+      await addGoal(goal);
+      setNewGoal({ title: '', description: '', category: 'physical', priority: 'medium', targetDate: '' });
+      setShowForm(false);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Could not create this goal. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdate = async (id: string, data: Partial<Goal>) => {
+    setActionError(null);
+    try {
+      await updateGoal(id, data);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Could not update this goal. Please try again.');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    setActionError(null);
+    try {
+      await deleteGoal(id);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Could not remove this goal. Please try again.');
+    }
   };
 
   return (
@@ -79,6 +107,7 @@ export function GoalsPage() {
         subtitle="Set and track your recovery goals"
         action={<Button onClick={() => setShowForm(true)} size="sm"><Plus size={16} /> New Goal</Button>}
       />
+      {actionError && <p className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-600">{actionError}</p>}
 
       {/* Summary cards */}
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
@@ -168,11 +197,11 @@ export function GoalsPage() {
 
                   <div className="mt-4 flex gap-2 border-t border-slate-100 pt-3">
                     {goal.status === 'active' && (
-                      <Button size="sm" variant="outline" onClick={() => updateGoal(goal.id, { status: 'completed', progress: 100 })}>
+                      <Button size="sm" variant="outline" onClick={() => void handleUpdate(goal.id, { status: 'completed', progress: 100 })} disabled={saving}>
                         <Check size={14} /> Complete
                       </Button>
                     )}
-                    <Button size="sm" variant="ghost" onClick={() => deleteGoal(goal.id)}><X size={14} /> Remove</Button>
+                    <Button size="sm" variant="ghost" onClick={() => void handleDelete(goal.id)} disabled={saving}><X size={14} /> Remove</Button>
                   </div>
                 </Card>
               </motion.div>
@@ -256,7 +285,7 @@ export function GoalsPage() {
                 </div>
               </div>
               <div className="mt-6 flex gap-3">
-                <Button fullWidth onClick={handleCreate}>Create Goal</Button>
+                <Button fullWidth onClick={() => void handleCreate()} disabled={saving}>{saving ? 'Saving...' : 'Create Goal'}</Button>
                 <Button variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
               </div>
             </motion.div>

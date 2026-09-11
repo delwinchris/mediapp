@@ -53,7 +53,19 @@ export const aiChatService = {
       timestamp: new Date().toISOString(),
     };
 
-    const coachResponse = "Based on your recovery data, you're progressing well. Continue your current routine and discuss any concerns with your physiotherapist.";
+    const endpoint = import.meta.env.VITE_AI_COACH_ENDPOINT as string | undefined;
+    if (!endpoint) {
+      throw new Error('AI coaching is not configured yet. Please set VITE_AI_COACH_ENDPOINT to enable live responses.');
+    }
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conversationId, message: text, messages: conversation.messages }),
+    });
+    if (!response.ok) throw new Error('The AI coach could not respond. Please try again later.');
+    const payload = await response.json() as { response?: string };
+    const coachResponse = payload.response?.trim();
+    if (!coachResponse) throw new Error('The AI coach returned an empty response.');
 
     const coachMsg = {
       id: `msg_${Date.now() + 1}`,

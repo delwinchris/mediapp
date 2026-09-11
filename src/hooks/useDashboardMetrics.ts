@@ -1,26 +1,24 @@
 import { useEffect, useState, useCallback } from 'react';
 import type { DashboardMetrics } from '@/types';
-import { mockRecoveryLogs, mockMentalLogs, mockExerciseHistory } from '@/lib/mockDatabase';
-import { mockGoals } from '@/lib/mockDatabase';
+import { recoveryLogService, mentalLogService, exerciseService } from '@/services';
 
 /**
- * Calculates all dashboard metrics from mock data.
- * When Supabase is connected, this hook will fetch data from the database
- * instead of importing mock data directly.
+ * Calculates dashboard metrics from the current user's persisted records.
  */
 
 export function useDashboardMetrics(): { metrics: DashboardMetrics | null; loading: boolean } {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const calculate = useCallback(() => {
-    const logs = mockRecoveryLogs;
-    const mental = mockMentalLogs;
-    const exerciseSessions = mockExerciseHistory;
+  const calculate = useCallback(async () => {
+    const [logs, mental, exerciseSessions] = await Promise.all([
+      recoveryLogService.getAll(), mentalLogService.getAll(), exerciseService.getHistory(),
+    ]);
 
-    if (logs.length === 0) {
-      return null;
-    }
+    if (logs.length === 0) return {
+      recoveryScore: 0, recoveryReadiness: 0, exerciseCompletion: 0,
+      mentalWellnessScore: 0, consistencyScore: 0, streak: 0, painTrend: 0, mobilityTrend: 0,
+    };
 
     // Use last 7 days for current period
     const recentLogs = logs.slice(-7);
@@ -46,11 +44,11 @@ export function useDashboardMetrics(): { metrics: DashboardMetrics | null; loadi
     );
 
     // Mental Wellness Score: average of inverted anxiety, fear, stress + confidence, motivation
-    const avgAnxiety = recentMental.reduce((s, m) => s + m.anxiety, 0) / recentMental.length;
-    const avgConfidence = recentMental.reduce((s, m) => s + m.confidence, 0) / recentMental.length;
-    const avgFear = recentMental.reduce((s, m) => s + m.fearOfReinjury, 0) / recentMental.length;
-    const avgMotivation = recentMental.reduce((s, m) => s + m.motivation, 0) / recentMental.length;
-    const avgStress = recentMental.reduce((s, m) => s + m.stress, 0) / recentMental.length;
+    const avgAnxiety = recentMental.length ? recentMental.reduce((s, m) => s + m.anxiety, 0) / recentMental.length : 0;
+    const avgConfidence = recentMental.length ? recentMental.reduce((s, m) => s + m.confidence, 0) / recentMental.length : 0;
+    const avgFear = recentMental.length ? recentMental.reduce((s, m) => s + m.fearOfReinjury, 0) / recentMental.length : 0;
+    const avgMotivation = recentMental.length ? recentMental.reduce((s, m) => s + m.motivation, 0) / recentMental.length : 0;
+    const avgStress = recentMental.length ? recentMental.reduce((s, m) => s + m.stress, 0) / recentMental.length : 0;
     const mentalWellnessScore = Math.round(
       ((10 - avgAnxiety) + avgConfidence + (10 - avgFear) + avgMotivation + (10 - avgStress)) / 5 * 10
     );
@@ -88,16 +86,14 @@ export function useDashboardMetrics(): { metrics: DashboardMetrics | null; loadi
       exerciseCompletion,
       mentalWellnessScore,
       consistencyScore,
-      streak: Math.max(streak, 30),
+      streak,
       painTrend: Math.round((avgPain - prevAvgPain) * 10) / 10,
       mobilityTrend: Math.round((avgMobility - prevAvgMobility) * 10) / 10,
     };
   }, []);
 
   useEffect(() => {
-    const result = calculate();
-    setMetrics(result);
-    setLoading(false);
+    void calculate().then(setMetrics).catch(() => setMetrics(null)).finally(() => setLoading(false));
   }, [calculate]);
 
   return { metrics, loading };

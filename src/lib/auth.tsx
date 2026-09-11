@@ -2,7 +2,6 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import type { UserProfile } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
-import { mockUser } from '@/lib/mockData';
 
 export interface AuthUser {
   id: string;
@@ -267,7 +266,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!prev) return prev;
       return {
         ...prev,
-        profile: { ...(prev.profile ?? mockUser), ...profile } as UserProfile,
+        // A profile may still be loading for a freshly registered account. Never
+        // substitute another person's data while keeping the authenticated user.
+        profile: { ...(prev.profile ?? {
+          id: session.user.id,
+          email: session.user.email ?? '',
+          name: session.user.user_metadata?.name ?? session.user.email?.split('@')[0] ?? '',
+          injury: '', injuryDate: '', painLevel: 5, mobilityLevel: 50, recoveryGoal: '',
+        }), ...profile } as UserProfile,
       };
     });
   }, []);

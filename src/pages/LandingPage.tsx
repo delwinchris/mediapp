@@ -94,8 +94,8 @@ export function LandingPage() {
                   <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
                 </Button>
               </Link>
-              <Link to="/app/dashboard">
-                <Button variant="outline" size="lg">View demo dashboard</Button>
+              <Link to="/signup">
+                <Button variant="outline" size="lg">Create your account</Button>
               </Link>
             </motion.div>
             <div className="mt-8 flex items-center gap-6 text-sm text-slate-500">
